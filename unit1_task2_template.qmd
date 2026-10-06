@@ -1,0 +1,166 @@
+---
+title: "Client Report - What's in a Name?"
+subtitle: "Unit 1 Task 2"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+import requests
+import io
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+```{python}
+url = "https://posit.byui.edu/content/0d43d66f-d3b7-4c43-8c36-52e3ed69e7f1/names_year_csv.csv"
+
+response = requests.get(url, verify=False)
+response.raise_for_status()
+
+df = pl.read_csv(io.BytesIO(response.content))
+```
+
+## QUESTION 1
+
+<!-- Make sure at least one of your charts includes reference marks!! -->
+
+__How does your name at your birth year compare to its use historically? Your must provide a chart. The years labels on your charts should not include a comma.__ 
+
+The name Talia was used 877 times in 2006, which is my birth year. The year my name was used the most in this dataset was 2023. After 1985, the usage of the name Talia increased fairly steadily until about 2004, at which point it appears to fall into a pattern of increases and decreases. (approximately 10 years from increase to increase) My birth year was at the very begining of a fall in popularity.
+
+No AI used.
+
+```{python}
+# Q1
+name_usage = (
+  df.filter(pl.col("name") == "Talia")
+)
+my_year_total = df.filter(pl.col("year") == 2006).filter(pl.col("name") == "Talia").select("Total").to_numpy()[0][0]
+name_plot = (
+  ggplot(data = name_usage, mapping = aes(x = "year", y = "Total"))
+  # Line showing name use
+  +geom_line()
+  # Date formatting
+  +scale_x_continuous(format = "d")
+  # Line to indicate birth year
+  +geom_vline(xintercept = 2006, color = "Purple", linetype = 3)
+  # Text to label line
+  +geom_text(x = 2007, y = my_year_total +300, label = "My Birth Year", color = "purple", size = 5, hjust = 0, angle = 270)
+  # Graph title
+  +labs(title = "Usage of the Name Talia Over Time")
+  # Classic theme to remove gridlines
+  +theme_classic()
+)
+
+name_plot
+```
+
+
+## QUESTION 2
+
+__Think of a unique name from a famous movie. Plot the usage of that name and see how changes line up with the movie release. Does it look like the movie had an effect on usage?__  
+
+The movie Rocky was released in 1976, shortly before a fairly large increase in name use which continued for about 6 years before use of the name fell off. This indicates that the movie could be related to an increase in the name use.
+One interesting note is the rise in name use from 1950 to 1960. Further research revealed that the professional boxer, Rocky Marciano, held the world heavyweight championship from 1952 to 1956. This caused a marked increase in the name use for sons of boxing fans.
+
+_AI use reflection_
+Consulted google and consequently google AI as to reasons for the increase in name use between 1950-1960, which gave the results about Rocky Marciano.
+
+```{python}
+# Q2
+rocky_name_usage = (
+  df.filter(pl.col("name") == "Rocky")
+)
+rocky_year_total = df.filter(pl.col("year") == 1976).filter(pl.col("name") == "Rocky").select("Total").to_numpy()[0][0]
+rocky_name_plot = (
+  ggplot(data = rocky_name_usage, mapping = aes(x = "year", y = "Total"))
+  # Rectangle to indicate boxing championship
+  +geom_rect(xmin = 1953, xmax = 1962, ymin = 0, ymax = 900, fill = "#c4dba5")
+  # Line to indicate name use
+  +geom_line()
+  # Date formatting
+  +scale_x_continuous(format = "d")
+  # Vertical line to indicate rocky movie release
+  +geom_vline(xintercept = 1976, color = "Red", linetype = 3)
+  # Label for rocky movie release
+  +geom_text(x = 1977.5, y = 900, label = "Rocky Release Year", color = "red", size = 5, hjust = 0, angle = 270)
+  # Label for boxing championship
+  +geom_text(x = 1963.5, y= 900, label="Heavyweight Championship", color="green", size=5, hjust = 0, angle = 270)
+  # Chart title
+  +labs(title = "Usage of the Name Rocky Over Time")
+  # Classic theme to get rid of gridlines
+  +theme_classic()
+)
+
+rocky_name_plot
+
+
+```
+
+## QUESTION 3
+
+__Mary, Martha, Peter, and Paul are all Christian names. From 1920 - 2000, compare the name usage of each of the four names in a single chart. What trends do you notice?__  
+
+By far the most popular Christian name on this list was Mary, followed far behind by Paul. The name Mary saw a lot of use in the 1920s, dropped toward 1940, and then spiked again toward 1950. Around 1964, both Mary and Paul showed a sharp decline in use, and have continued to drop slowly. Martha and Peter remained relatively low. The name Peter does mirror the shape of the Paul curve from 1945 to 1972, although less extreme. 
+
+However, it is worth noting that all of these names show a lot of use compared to other names featured in this report, as most of the other names never break 1,000 uses, and even at its lowest the name Mary features 6,221 uses in the year 2000.
+
+No AI used.
+
+```{python}
+# Q3
+christian_names = pl.DataFrame(
+  {
+    "name":[
+      "Mary",
+      "Martha",
+      "Peter",
+      "Paul",
+    ]
+  }
+)
+name_comp_data = (
+  df.join(christian_names, how="semi", on="name").filter(pl.col("year") >=1920).filter(pl.col("year")<=2000)
+)
+
+name_comp_data
+
+christian_name_plot = (
+  ggplot(data = name_comp_data, mapping = aes(x = "year", y = "Total", color = "name"))
+  # Lines to indicate name use
+  +geom_line()
+  # Date formatting
+  +scale_x_continuous(format = "d")
+  # Title
+  +labs(title = "Usage of Christian Names Over Time")
+  # Theme to remove gridlines
+  +theme_classic()
+)
+
+christian_name_plot
+```
+<!-- Make sure at least one of your charts includes reference marks!! -->

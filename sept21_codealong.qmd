@@ -1,0 +1,67 @@
+title: "Untitled"
+format: html
+---
+
+Load libraries and load in data
+
+```{python}
+import numpy as np
+import polars as pl
+from lets_plot import *
+LetsPlot.setup_html(isolated_frame=True)
+
+url = "https://byui-cse.github.io/cse110-course/lesson11/life-expectancy.csv"
+
+df = pl.read_csv(url)
+```
+
+
+
+REVIEW EXERCISE:
+Just look at the United States, rename the last column to "Life".
+---
+
+```{python}
+usa = (
+    df.filter(pl.col("Entity") == 'United States')
+    .rename({'Life expectancy (years)': 'Life'})
+)
+```
+
+# Plotting a basic histogram
+```{python}
+(
+    ggplot(data=usa)
+        +geom_histogram(mapping = aes(x = 'Life'))
+)
+```
+
+# Task 1 USA Life expectancy
+```{python}
+(
+    ggplot(data = usa)
+        +geom_line(mapping = aes(x = 'Year', y = 'Life'))
+        +scale_x_continuous(limits = [1900, 2000])
+)
+```
+
+# Task 2 
+using markers (note: dont overlap the text with the line like this one does, its fine for example but not submission)
+```{python}
+(
+    ggplot(data = usa)
+        +geom_line(mapping = aes(x = 'Year', y = 'Life'))
+        +scale_x_continuous(limits = [1900, 2000], format = 'd', breaks = list(range(1900,2000,10)))
+        +geom_rect(xmin = 1915, xmax = 1920, ymin = 45, ymax = 60, fill = "red", alpha = .2)
+        +labs(
+            title="Life Expectancy in the United States Over Time",
+            caption = ("Overall life expectancy has an upward trend as time goes on. Notable points include 1918-1920, where the spanish flu and WWI caused a significant decrease, marked in red. The last decrease was in 1943, which is marked by the blue dashed line.")
+        )
+        +theme(plot.caption.position = "plot")
+        +geom_text(x = 1926, y = 45, label = "Spanish Flu and WWI", size = 5, color = "black", hjust = 0)
+        +geom_segment(x = 1925, xend = 1920, y = 45, yend = 50, color = "red", arrow = arrow())
+        +geom_vline(xintercept = 1943, color = "blue", linetype = 3)
+        +geom_text(x = 1945, y = 65, label = "Last decrease in 1943", size = 5, color = "black", hjust = 0, angle = 270)
+
+)
+```

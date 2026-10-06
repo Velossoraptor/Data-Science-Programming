@@ -1,0 +1,29 @@
+---
+title: "Example Report with Inline Numbers from Code"
+author: "Joan Robinson"
+format: pdf
+toc: true
+number-sections: true
+jupyter: python3
+---
+
+## Report
+
+For a demonstration of a line plot on a polar axis, see @fig-polar.
+
+For an example of a code output where the input is not shown, the code below will *only* show the output table by using the `echo: false` option.
+
+```{python}
+#| echo: false
+from IPython.display import display, Markdown
+import pandas as pd
+import seaborn as sns
+
+df = sns.load_dataset("penguins")
+big_pen = df["body_mass_g"].max()
+number = len(df)
+```
+
+### The Heaviest Penguin
+
+We find that the heaviest penguin, out of a total of `python f"{number}"` penguins, has a mass of `python f"{big_pen:.0f}"` kilograms.

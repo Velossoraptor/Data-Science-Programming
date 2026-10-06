@@ -1,0 +1,126 @@
+---
+title: "Client Report - Exploring Names"
+subtitle: "Unit 1 Task 1"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+import requests
+import io
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+```{python}
+#df = pl.read_csv("https://posit.byui.edu/content/0d43d66f-d3b7-4c43-8c36-52e3ed69e7f1/names_year_csv.csv")
+#df
+
+url = "https://posit.byui.edu/content/0d43d66f-d3b7-4c43-8c36-52e3ed69e7f1/names_year_csv.csv"
+
+response = requests.get(url, verify=False)
+response.raise_for_status()
+
+df = pl.read_csv(io.BytesIO(response.content))
+```
+
+## QUESTION 1
+
+__What was the earliest year that the name ‘Felisha’ was used?__
+
+The earliest year that the name 'Felisha' was used was 1964, where a total of 20 babies were named Felisha.
+
+Did not use AI
+
+```{python}
+# Q1
+# sort the dataframe by name, then by year to see the earliest year that the name Felisha appeared.
+earliest_felisha = df.filter(pl.col("name") == "Felisha").sort("year").head()
+
+# show dataframe so that you can see the results of sorting
+earliest_felisha
+
+```
+
+
+## QUESTION 2
+
+__What year had the most babies named 'David'? How many babies were named 'David' that year?__
+
+The year with the most babies named David was 1955, where there were a total of 86389 babies named David.
+
+Did not use AI
+
+```{python}
+# Q2
+# sort the dataframe by name, then sort by total in descneding order to see the year that had the most babies named David.
+most_davids = df.filter(pl.col("name") == "David").sort("Total", descending=True).head()
+
+# print the frame to display the sorted Datas
+most_davids
+
+```
+
+
+## QUESTION 3
+
+__What year did your name hit its peak? How many babies were named your name in that year?__
+
+My name actually hit its peak fairly recently, in 2023. There were 1159 babies named Talia in that year. CA had the most babies named Talia in 2023 out of all the states!
+
+Did not use AI
+
+```{python}
+# Q3
+# sort dataframe by na,e, then sort by total
+peak_talia = df.filter(pl.col("name") == "Talia").sort("Total", descending=True).head()
+
+# display sorted data
+peak_talia
+
+```
+
+
+## QUESTION 4
+
+__In the most recent year, what was the most common female name in Utah?__
+
+The most recent year in the dataframe is 2024, and the most popular female name in Utah that year was Olivia. There were a total of 215 babies named Olivia in Utah in 2024.
+
+Did not use AI
+
+```{python}
+# Q5
+# sort the data by total names in utah in descending order, then sort by year in descending order to get the most recent year, and then display the top 5 results to see if the most common female name pops up
+most_common_female_name = df.sort("UT", descending=True).sort("year", descending=True).head(10)
+
+# display sorted data
+most_common_female_name
+
+```
+
+
+---

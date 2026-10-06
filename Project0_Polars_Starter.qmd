@@ -1,0 +1,53 @@
+---
+title: "Introduction to Polars"
+format: "html"
+---
+
+This is Text
+
+# Header
+## Subheader
+### Phylum
+#### Class
+##### Order
+###### Family
+
+*Italics*
+**Bold**
+***Bold Italics***
+
+```{python}
+    import polars as pl
+    import numpy as np
+    import io
+    import io
+    import requests
+    from lets_plot import *
+
+    LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+print("Hello DS 250 DATA SCIENCE!!!")
+```
+
+Calculate
+
+```{python}
+x=2+2
+print(x)
+```
+
+# Quiz 1
+
+Question 1: What is this code doing?
+
+```{python}
+df = pl.DataFrame(
+    {"a": [5, 4, 6, 2, 3],
+    "b": [7, 8, 9, 10, 11],
+    "c": [10, 11, 12, 101, None]}
+)
+df
+```

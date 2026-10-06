@@ -1,0 +1,27 @@
+[project]
+name = "data-science-programming"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "velossoraptor", email = "taliamolsen@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "lets-plot>=4.11.0",
+    "palmerpenguins>=0.1.6",
+    "pandas>=3.0.5",
+]
+
+[project.scripts]
+data-science-programming = "data_science_programming:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+    "jupyter>=1.1.1",
+]

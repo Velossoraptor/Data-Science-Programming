@@ -1,0 +1,81 @@
+---
+title: "Unit 2 Day 1 Class Notes"
+format: html
+---
+
+```{python}
+# %%
+import io
+import polars as pl
+import requests
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# Read in the flights data
+
+
+
+```{python}
+url = "https://raw.githubusercontent.com/byuidatascience/data4missing/master/data-raw/flights_missing/flights_missing.json"
+response = requests.get(url)
+response.raise_for_status()
+df = pl.read_json(io.BytesIO(response.content))
+
+df.head()
+```
+
+# Give it a quick once-over
+
+
+
+```{python}
+df.schema
+```
+
+# Question 1: Seasons
+use 'with_columns' to correct 'Febuary' to 'February' and create a seasons column
+```{python}
+df_season = (
+    df.with_columns(
+        # .replace is used for bad data, to target and replace it
+        pl.col("month").replace("Febuary", "February").alias("month")
+    )
+    .with_columns(
+        pl.when(pl.col("month").is_in(["January", "February", "Devember"])).then(pl.lit("Winter"))
+        .when(pl.col("month").is_in(["April", "May", "March"])).then(pl.lit("Spring"))
+        .when(pl.col("month").is_in(["July", "August", "June"])).then(pl.lit("Summer"))
+        .when(pl.col("month").is_in(["October", "November", "September"])).then(pl.lit("Fall"))
+        .otherwise(pl.lit("Unknown"))
+        .alias("season")
+    )
+)
+# df_season
+df_season.select("month", "season").unique().sort("month")
+```
+
+# Gather all columns whose names start with num_of.
+```{python}
+num_cols = [col for col in df.columns if col.startswith("num_of")]
+minute_cols = [col for col in df.columns if col.startswith("minutes_delayed")]
+# See if you can do it without a for loop! is there a function?
+num_cols
+```
+
+# filter out problematic values like -999 or 1500+ and divide by 1000
+
+```{python}
+df_season_clean = (
+    df_season.with_columns(
+        pl.col("num_of_delays_carrier")
+        .replace("1500+", 1500)
+        .cast(pl.Int64)
+    ).with_columns(
+        pl.col("num_of_delays_late_aircraft")
+        .replace(-999, None)
+        .fill_null(pl.col("num_of_delays_late_aircraft").mean())
+    )
+)
+```
+

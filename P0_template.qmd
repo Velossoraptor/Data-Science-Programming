@@ -1,0 +1,74 @@
+---
+title: "Client Report - Project 0: Introduction"
+subtitle: "Course DS 250"
+author: "[STUDENT NAME]"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+from palmerpenguins import load_penguins
+penguins = load_penguins()
+```
+
+## QUESTION|TASK 1
+
+__Recreate the first table displayed at [PY4DS: CH2 Data Visualization](https://aeturrell.github.io/python4DS/data-visualise.html)__
+
+
+```{python}
+penguins
+
+```
+
+
+## QUESTION|TASK 2
+
+__Recreate an example chart from [PY4DS: CH2 Data Visualization](https://aeturrell.github.io/python4DS/data-visualise.html), in the First Steps section. Specifically, recreate the chart in the subsection labelled "Ultimate Goal", by copying the code above the chart and pasting it in the cell below__
+
+
+```{python}
+# Scatteplot relating flipper length to body mass, color coded by species. A linear relationship is shown with the geom_smooth option. This is the chart in the "Ultimate Goal" section of Ch2.
+(
+    ggplot(penguins, aes(x="flipper_length_mm", y="body_mass_g"))
+    + geom_point(aes(color="species", shape="species"))
+    + geom_smooth(method="lm")
+    + labs(
+        title="Body mass and flipper length",
+        subtitle="Dimensions for Adelie, Chinstrap, and Gentoo Penguins",
+        x="Flipper length (mm)",
+        y="Body mass (g)",
+        color="Species",
+        shape="Species",
+    )
+)
+```
+Note that as flipper length increases, body mass also increases with all three species. The Adelie and Chinstrap species tend to have similar flipper lengths and body masses, while the Gentoo species tends to have longer flippers and heavier body masses. The Gentoo species appears to be the largest of the three species.
