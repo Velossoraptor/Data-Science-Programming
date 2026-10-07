@@ -115,9 +115,10 @@ weather_delays = (
     .otherwise(pl.col("num_of_delays_nas") * 0.65),
     # Creates a new column with the divided values, to leave the original column unchanged
     num_of_delays_late_aircraft_percent = pl.col("num_of_delays_late_aircraft") * 0.3,
+  ).with_columns(
     # Creates a new column with the total of the three columns
     total_weather_delays = pl.sum_horizontal(
-      pl.col(["num_of_delays_weather", "num_of_delays_nas", "num_of_delays_late_aircraft"])
+      pl.col(["num_of_delays_weather", "num_of_delays_nas_percent", "num_of_delays_late_aircraft_percent"])
     )
   )
   # Drops the calculation columns so that the dataset isn't cluttered
@@ -131,9 +132,9 @@ weather_delays.head()
 
 1. __Using the new weather variable calculated above, create a boxplot showing the distribution of flights delayed by weather for each season. Describe what you learn from this graph.__    
 
-Looking at the chart, Winter, Spring, and Summer have very similar distributions, with the max values being in the high 7,000s, a median around 2,000, and a lower quartile of around 1,000. They also have the highest number of delays overall. Fall has a lower distribution, with a max of around 6,850, a median of 1.8k, and a lower quartile of about 0.8k. The unknown category contains a fair chunk of data, and has a much lower median than any of the other options.
+Looking at the chart, Spring is the season with the lowest number of flights delayed by weather, with a max of 2,920 flights delayed, a median of 790, and a minimum of 100. Winter has the highest number of flights, with a maximum of 3,940, a median of 1,060, and a minimum of 160. It is worth noting that the unknown category contains a fair amount of data and may be affecting the other seasons.
 
-From this, it seems like the end of the year (October, November, and December) has fewer weather delays than the other months of the year, although overall it is pretty close. The unknown category is likely skewing the data as it includes a lot of missing data, comparable to the sets that include 3 months.
+But, according to the data on display, it appears that the best time to fly to avoid potential weather delays is springtme. If you fly in the winter, prepare for delays!
 
 ```{python}
 weather_plot = (

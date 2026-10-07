@@ -1,0 +1,181 @@
+---
+title: "Practice Report - NYC Flights: Column Aggregation"
+subtitle: "Unit 2 Task 2 Learning Notes"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+---
+
+The NYC flights data contains one year, so Question 1 uses **carrier and
+month**.
+
+Install the package once in the environment used to render this document:
+
+```bash
+pip install nycflights13
+```
+
+
+```{python}
+import polars as pl
+from nycflights13 import flights #this is a pandas dataframe
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# Read the practice data
+
+```{python}
+# The package provides flights as a pandas DataFrame.
+print(flights.head())
+
+df = pl.from_pandas(flights)
+
+df.head()
+```
+
+Columns we will focus on:
+
+- `carrier`: airline code
+- `month`: month number
+- `flight`: flight identifier
+- `arr_delay`: arrival delay in minutes; positive values are delayed flights
+
+## Question 1: Sample size by carrier and month
+
+Calculate the sample size—that is, the number of rows—for each carrier in each
+month. What do you notice?
+
+```{python}
+# TODO: group by carrier and month, count rows (remember .len()), and sort the result.
+sample_sizes = (
+    df
+    .group_by("carrier", "month")
+    .len( name = "sample_size")
+    .sort("carrier", "month")
+)
+sample_sizes
+```
+
+_Describe what you notice about the number of flights across carriers and
+months._
+
+## Question 2: Which carrier has the worst delays?
+
+Describe the metric you chose and why it is a reasonable definition of
+“worst.” Your summary table should list, for each carrier:
+
+- total number of flights
+- total number of delayed flights
+- proportion of flights delayed
+- average delay time in hours
+
+Use `arr_delay > 0` to identify delayed flights. The source column is in
+minutes, so convert the average to hours.
+
+```{python}
+# TODO: create a delayed-flight indicator column.
+# A delayed flight has arr_delay greater than zero.
+
+q2 = (
+    df
+    .with_columns(
+        # TODO: create a 0/1 indicator named something like delayed_flight 
+        (pl.col("arr_delay") > 0)
+        .cast(pl.Int64)
+        .alias("delayed_flight")
+    )
+)
+
+q2
+```
+
+
+```{python}
+# TODO: group by carrier and create the requested summary columns.
+# Suggested name: by_carrier
+
+by_carrier = (
+    q2
+    .group_by("carrier")
+    .agg(
+        # total flights
+        pl.len().alias("total_flights"),
+        # total delayed flights
+        pl.col("delayed_flight")
+        .sum()
+        .alias("total_delayed"),
+        # average delay time in hours
+        pl.col("arr_delay")
+        .filter(pl.col("arr_delay") > 0)
+        .mean()
+        .alias("mean_delay_minutes")
+    )
+    .with_columns(
+        # TODO: proportion of delayed flights
+        (pl.col("total_delayed") / pl.col("total_flights"))
+        .alias("proportion_delayed"),
+        (pl.col("mean_delay_minutes") / 60)
+        .alias("mean_delay_hours")
+    )
+    .select(
+        "carrier", 
+        "total_flights", 
+        "total_delayed", 
+        "proportion_delayed", 
+        "mean_delay_hours"
+    )
+    .sort("proportion_delayed", descending = True)
+)
+
+# TODO: display the summary table
+by_carrier.head()
+```
+
+_Describe your chosen metric, identify the worst carrier, and explain your
+conclusion._
+
+## Question 3: Proportion of delayed flights
+
+Create a polished barplot showing the proportion of flights that are delayed
+for each carrier. Include labels, a title, and a subtitle.
+
+```{python}
+# TODO: sort by the proportion column and create the barplot.
+
+(
+    ggplot(
+        data=by_carrier.sort("proportion_delayed", descending=True),
+        mapping=aes(x="carrier", y="proportion_delayed")
+    )
+    + geom_bar(stat="identity")
+    + labs(
+        x="Carrier",
+        y="Proportion of flights delayed",
+        title="Proportion of Flights Delayed By Carrier",
+        subtitle="TODO: informative subtitle"
+    )
+)
+```
+
+_Describe what you learn from the graph. Identify the carrier with the highest
+and lowest proportion of delayed flights._

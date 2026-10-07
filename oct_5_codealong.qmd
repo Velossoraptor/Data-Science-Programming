@@ -79,3 +79,37 @@ df_season_clean = (
 )
 ```
 
+Divide all columns by 1000
+
+```{python}
+q2 = (
+    df_season_clean.with_columns(
+        pl.col('^num_of.*$')/1000
+    )
+)
+q2
+```
+
+# too much help
+
+```{python}
+q3 = q2.with_columns(
+    weather = pl.when(pl.col('month').is_in(['April', 'May', 'June', 'July', 'August']))
+                .then(pl.lit(.4))
+                .otherwise(pl.lit(0.65))
+               * pl.col('num_of_delays_nas')
+               + 0.3 * pl.col('num_of_delays_late_aircraft')
+               + pl.col('num_of_delays_weather') 
+)
+q3
+```
+
+# Questnion 4
+
+```{python}
+(
+  ggplot(data = q3, mapping = aes(x = 'season', y = 'weather')) 
+  + geom_boxplot() +
+  labs(y = "Flights delayed (1000's)", title = "Monthly Delay Data Due to Weather at  Select Airports", subtitle = "Spring has fewest weather delays")
+)
+```
