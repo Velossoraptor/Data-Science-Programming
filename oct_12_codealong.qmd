@@ -1,0 +1,211 @@
+---
+title: "Client Report - NYC Flights: Missing Values"
+subtitle: "Unit 2 Task 3 Learning Notes"
+author: "[STUDENT NAME]"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute:
+  warning: false
+---
+
+# Skills
+
+- null handling
+- type coercion
+- numeric values stored as strings
+
+Install once in the rendering environment:
+
+```bash
+pip install nycflights13
+```
+
+```{python}
+import json
+import polars as pl
+from nycflights13 import flights
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+
+df = pl.from_pandas(flights)
+```
+
+# Create the practice copy
+
+The package data is already clean, so this lesson creates a small messy layer
+from real NYC flight fields. The added columns imitate the kinds of values in
+the course Flights JSON file: `n/a`, `1500+`, and `-999`.
+
+```{python}
+raw = (
+    df
+    .with_columns(
+        pl.col("month").cast(pl.String).alias("month"),
+        pl.when(pl.col("dep_delay").is_null())
+          .then(pl.lit("n/a"))
+          .when(pl.col("dep_delay") > 120)
+          .then(pl.lit("1500+"))
+          .otherwise((pl.col("dep_delay") > 0).cast(pl.Int64).cast(pl.String))
+          .alias("num_of_delays_carrier"),
+        pl.when(pl.col("arr_delay").is_null())
+          .then(None)
+          .otherwise((pl.col("arr_delay") > 0).cast(pl.Int64))
+          .alias("num_of_delays_total"),
+        pl.when(pl.col("arr_delay").is_null())
+          .then(None)
+          .otherwise((pl.col("arr_delay") > 0).cast(pl.Int64))
+          .alias("num_of_delays_late_aircraft"),
+        pl.col("dep_delay").alias("minutes_delayed_carrier"),
+        pl.col("arr_delay").alias("minutes_delayed_nas")
+    )
+    .with_columns(
+        pl.when(pl.int_range(0, pl.len()) == 0)
+          .then(pl.lit("n/a"))
+          .otherwise(pl.col("month"))
+          .alias("month"),
+        pl.when(pl.int_range(0, pl.len()) == 1)
+          .then(pl.lit(-999))
+          .otherwise(pl.col("num_of_delays_late_aircraft"))
+          .alias("num_of_delays_late_aircraft")
+    )
+)
+
+raw.head()
+```
+
+## Question 1: Convert values to missing
+
+Start with `raw`, not with the data you create later. Identify values that are
+missing, nonsensical, or stored in an inconvenient type. Investigate `month`,
+`num_of_delays_carrier`, and `num_of_delays_late_aircraft`.
+
+```{python}
+# TODO: inspect schemas, null counts, unique values, and minimums.
+raw.group_by('month').len().sort('month')
+raw.group_by('num_of_delays_carrier').len().sort('num_of_delays_carrier')
+```
+
+Use `when().then().otherwise()` or `replace()` to convert:
+
+- `month == "n/a"` to null
+- `num_of_delays_carrier == "n/a"` or `"1500+"` to null, then cast it to an integer
+- `num_of_delays_late_aircraft == -999` to null
+
+```{python}
+# TODO: create df1 with the problematic values converted to null.
+df1 = raw.with_columns(
+    pl.col('month')
+      .replace('n/a', None)
+      .alias('month'),
+    pl.col('num_of_delays_carrier')
+      .replace({'n/a':None, '1500+':None})
+      .cast(pl.Int64),
+    pl.col('num_of_delays_late_aircraft')
+      .replace('-999', None)
+)
+df1
+```
+
+Include one cleaned record in raw JSON format with at least one `null` value.
+
+```{python}
+# TODO: select one row containing a null and print its JSON representation.
+one_row = (
+    df1.filter(
+        pl.any_horizontal(
+            pl.col('month').is_null(),
+            pl.col('num_of_delays_carrier').is_null(),
+            pl.col('num_of_delays_late_aircraft').is_null()
+        )
+    )
+    .head(1)
+    .to_dicts()
+)
+print(json.dumps(one_row))
+# YOU ONLY NEED ONNEEE ROW!!! AS LONG AS IT HAS A NULL VALUE!!
+```
+
+_Describe how you found the problematic values and how you changed them._
+
+## Question 2: Fill in missing data
+
+For all columns beginning with `minutes_delayed`, fill missing values with the
+median of that column. For all columns beginning with `num_of`, fill missing
+values with that column's mean.
+
+Use a regular-expression selector or `polars.selectors` rather than listing
+every column individually.
+
+```{python}
+# TODO: fill the minutes_delayed columns with their medians. Use .fill_null()
+# TODO: fill the num_of columns with their means.
+df2 = df1.with_columns(
+    pl.col('^num_of_.*$').fill_null(strategy = 'mean'),
+    pl.col('^minutes_delayed_.*$').fill_null(pl.col('^minutes_delayed_.*$').median())
+)
+df2
+```
+
+Check that the selected columns no longer contain null values.
+
+```{python}
+# TODO: verify the null counts for the cleaned column groups.
+df2.select(
+    pl.col('minutes_delayed_carrier').null_count(),
+    pl.col('minutes_delayed_nas').null_count()
+)
+```
+
+## Question 3: Histograms and means
+
+Create two separate polished histograms:
+
+1. `num_of_delays_carrier`
+2. `minutes_delayed_nas`
+
+Comment on the shape of each distribution and report the mean of each column
+after missing values have been filled.
+
+```{python}
+# TODO: calculate both filled means.
+carrier_mean = df2.select('num_of_delays_carrier').mean()
+nas_mean = df2.select('minutes_delayed_nas').mean()
+```
+
+```{python}
+# TODO: create a histogram for num_of_delays_carrier.
+p1 = (
+    ggplot(df2, mapping = aes(x = 'num_of_delays_carrier'))
+    +geom_histogram()
+)
+p1
+```
+
+```{python}
+# TODO: create a histogram for minutes_delayed_nas.
+p2 = (
+    ggplot(df2, mapping = aes(x = 'minutes_delayed_nas'))
+    +geom_histogram()
+    +labs(title = "Distribution of NAS Minutes Delayed",
+    x = "NAS Minutes Delayed",
+    y = "Number of Recorded Flights")
+)
+p2
+```
