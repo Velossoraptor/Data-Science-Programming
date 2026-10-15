@@ -1,0 +1,145 @@
+---
+title: "Unit 2 Stretch Task"
+subtitle: "Unit 2 Task 4 Stretch"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import requests #new for reading in JSON
+import io       #new for reading in JSON
+import numpy as np
+from lets_plot import *
+import json
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+url = "https://raw.githubusercontent.com/byuidatascience/data4missing/master/data-raw/flights_missing/flights_missing.json"
+response = requests.get(url)
+df = pl.read_json(io.BytesIO(response.content))
+```
+
+## Task 3 Code to Clean the DF
+This is repeated code from the last assignment that cleans the df we recieved.
+
+```{python}
+# Find and replace problem values in certain columns with null values
+missing_df = df.with_columns(
+  pl.col('month')
+    .replace('n/a', None),
+  pl.col('num_of_delays_carrier')
+    .replace('1500+', None)
+    .cast(pl.Int64),
+  pl.col('num_of_delays_late_aircraft')
+    .replace(-999, None),
+  pl.col('minutes_delayed_nas')
+    .replace(-999, None)
+)
+```
+
+```{python}
+# Fill num_of columns null_values with mean, and minutes delayed columns null_values with median
+filled_data = missing_df.with_columns(
+  pl.col('^num_of_.*$').fill_null(strategy = 'mean'),
+  pl.col('^minutes_delayed_.*$').fill_null(pl.col('^minutes_delayed_.*$').median())
+)
+```
+
+## Which Delay is the Worst Delay?
+
+*Which delay is the worst delay? Keep working with the cleaned dataset you created in the previous task. Compare the proportion of flights delayed due to Carrier, to Security, and to Late Aircraft. Show this comparison in a Chart and a Table. Describe your results.*
+
+```{python}
+  pivot_df = filled_data.unpivot(
+  index=["airport_code"], 
+  on=["num_of_delays_carrier", "num_of_delays_security", "num_of_delays_late_aircraft"],
+  variable_name = "delay_type",
+  value_name = "num_of_delays"
+  )
+  
+  specific_delays = pivot_df.group_by("delay_type").agg(pl.col("num_of_delays").sum()).with_columns(
+    (pl.col("num_of_delays")/pl.col("num_of_delays").sum()).alias("proportion")
+  )
+
+  airport_proportions = pivot_df.group_by("airport_code", "delay_type").agg(pl.col("num_of_delays").sum()).with_columns(
+    (
+      pl.col("num_of_delays")/
+      pl.col("num_of_delays").sum().over("airport_code")
+      )
+      .alias("proportion")
+  )
+  airport_proportions
+```
+
+The category of delays with the highest proportion is delays from late aircraft, at 61%. The lowest is delays from security, at 0.3%. So really, expect to be delayed by a late aircraft or a carrier, not security. 
+
+```{python}
+pivot_plot = (
+  ggplot(specific_delays, mapping = aes(x = "delay_type", y = "proportion", color = "delay_type", fill = "delay_type"))
+  +geom_bar(stat = "identity")
+  +labs(
+    title = "Proportion of Delays by Type",
+    x = "Delay Type",
+    y = "Proportion"
+  )
+  +theme(legend_position = 'none')
+)
+pivot_plot
+```
+
+
+## Question 2
+*Create another chart that shows the proportion of delays for each reason (Carrier, Security, and Late Aircraft) across all 7 airports. Describe your results.*
+
+
+As is shown in this stacked bar chart, the Chigaco O'Hare international airport has the most delays, and late aircraft make up over half of it. The delays by security are so minimal at each airport, they are almost impossible to see on the chart compared to the scale of delays from late aircraft and carriers. 
+
+The Washington Dulles international airport has the least delays, but late aircraft still contribute over half the delays. 
+
+The San Diego airport has the closest split of aircraft and carrier delays, and still a tiny amount of security delays.
+
+```{python}
+pivot2 = (
+  ggplot(airport_proportions, mapping = aes(x = "airport_code", y = "proportion", fill = "delay_type"))
+  +geom_bar(stat = "identity", position = "stack")
+  +labs(
+    title = "Proportion of Delays by Type and Airport",
+    x = "Airport Code",
+    y = "Proportion",
+    fill = "Delay Type"
+  )
+  +scale_y_continuous(format = ".1%")
+)
+pivot2
+```
+
+
+AI use:
+
+- Googled how to create a stacked bar chart
+
+- AI suggested using .over() to create a proportion for each individual airport

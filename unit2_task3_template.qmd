@@ -1,7 +1,7 @@
 ---
 title: "Client Report - Missing values"
 subtitle: "Unit 2 Task 3"
-author: "[STUDENT NAME]"
+author: "Talia Olsen"
 format:
   html:
     self-contained: true

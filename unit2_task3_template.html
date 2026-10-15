@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="[STUDENT NAME]">
+<meta name="author" content="Talia Olsen">
 
 <title>Client Report - Missing values</title>
 <style>
@@ -2235,7 +2235,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
       <div>
       <div class="quarto-title-meta-heading">Author</div>
       <div class="quarto-title-meta-contents">
-               <p>[STUDENT NAME] </p>
+               <p>Talia Olsen </p>
             </div>
     </div>
       
@@ -2261,7 +2261,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   <li><a href="#question-3" id="toc-question-3">QUESTION 3</a></li>
   </ul>
 </nav>
-<div id="40398d6d" class="cell" data-execution_count="1">
+<div id="a26c6d10" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -2274,7 +2274,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>LetsPlot.setup_html(isolated_frame<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="91b48162" class="cell" data-execution_count="2">
+<div id="b591a24d" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>url <span class="op">=</span> <span class="st">&quot;https://raw.githubusercontent.com/byuidatascience/data4missing/master/data-raw/flights_missing/flights_missing.json&quot;</span></span>
@@ -2288,7 +2288,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <li><strong>Convert values to missing</strong> Start with a fresh copy of the flights dataset by reading it in from the link provided above (as opposed to starting with the dataset you ended with in the last assignment). Identify data values that are problematic, non-sense or impossible and change them to be missing. In your report include one record example (one row) from your clean data, in the raw JSON format. Your example should display at least one missing value so that we can verify it was done correctly. (Note: JSON will convert NaN’s to null). Describe your process for finding values that needed to be changed, and how you changed them.</li>
 </ol>
 <p>Checking which columns needed to have values replaced was a combination of printing known problem rows, and looking through the visual representation of the database in DataWrangler. I found columns that had values like n/a, 1500+, or -999 and replaced them with null.</p>
-<div id="071fc8dd" class="cell" data-execution_count="3">
+<div id="b0fe73ba" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check = df.group_by(&#39;month&#39;).len().sort(&#39;month&#39;)</span></span>
@@ -2298,7 +2298,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># check</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="2a1cd8a7" class="cell" data-execution_count="4">
+<div id="6a5000eb" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find and replace problem values in certain columns with null values</span></span>
@@ -2328,7 +2328,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <li><strong>Filling in missing data</strong> For all the “minutes_delayed” columns, fill in any missing values with the median of that column. For the “num_of” columns, fill in missing values with that column’s mean.</li>
 </ol>
 <p><em>Nothing to write/report for this question</em></p>
-<div id="0ec62d98" class="cell" data-execution_count="5">
+<div id="73faba5f" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill num_of columns with mean, and minutes delayed columns with median</span></span>
@@ -2489,7 +2489,7 @@ white-space: pre-wrap;
 </div>
 </div>
 </div>
-<div id="a2150b1d" class="cell" data-execution_count="6">
+<div id="086257cb" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># filled_data.select(</span></span>
@@ -2506,7 +2506,7 @@ white-space: pre-wrap;
 </ol>
 <p>Number of Delays Carrier Mean: 691.27</p>
 <p>Minutes Delayed NAS Mean: 69682.66</p>
-<div id="28823d64" class="cell" data-execution_count="7">
+<div id="e45ae1a0" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculates the mean of each of the columns</span></span>
@@ -2515,7 +2515,7 @@ white-space: pre-wrap;
 </details>
 </div>
 <p>The distribution of delays by carrier is more evenly spread, with a clear peak around 400 delays, and a large spike at 696. It’s slightly right skewed.</p>
-<div id="8fcbb37c" class="cell" data-execution_count="8">
+<div id="153cbe69" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> (</span>
@@ -2540,7 +2540,7 @@ white-space: pre-wrap;
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="btPfLL"></div>
+          <div id="v7AgwN"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2565,7 +2565,7 @@ white-space: pre-wrap;
        };
    }
    
-   const containerDiv = document.getElementById("btPfLL");
+   const containerDiv = document.getElementById("v7AgwN");
    let fig = null;
    
    function renderPlot() {
@@ -2703,7 +2703,7 @@ white-space: pre-wrap;
 </div>
 </div>
 <p>The distribution of minutes delayed NAS is heavily right skewed, with a peak at 18,790.5 minutes.</p>
-<div id="af7a9e70" class="cell" data-execution_count="9">
+<div id="f8819d57" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> (</span>
@@ -2727,7 +2727,7 @@ white-space: pre-wrap;
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="Im9wwJ"></div>
+          <div id="dMHnPt"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2752,7 +2752,7 @@ white-space: pre-wrap;
        };
    }
    
-   const containerDiv = document.getElementById("Im9wwJ");
+   const containerDiv = document.getElementById("dMHnPt");
    let fig = null;
    
    function renderPlot() {
