@@ -1,0 +1,130 @@
+---
+title: "Client Report - Can You Predict That?"
+subtitle: "Unit 4 Task 1"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.dummy import DummyClassifier
+from sklearn.datasets import fetch_openml
+
+LetsPlot.setup_html(isolated_frame=True)
+
+```
+
+
+```{python}
+ames = fetch_openml(name="house_prices", as_frame=True, parser='auto')
+
+df = pl.from_pandas(ames.frame)
+```
+
+## QUESTION
+
+1. __Take time to get to know your data.__ Based on some initial exploration, identify 3 variables in the dataset you think will have strong predictive ability for determining if a house was built before 1980. Explain/justify the reasoning behind your guesses (for example with plots).
+
+I just looked at the data frame and saw what columns existed. I looked at a few houses, really just skimming the data, seeing if I immediately saw anything worth chasing. 
+One that caughe my eye was the garage year built, as older homes were likely to have older garages.
+Another was remodeling year, as older houses likely had older dates of remodeling.
+And the last I picked was overall quality, as I assume that newer houses tend to have better overall quality than older houses.
+
+
+```{python}
+# Literally just displayed the data and looked at what columns existed
+df.head()
+
+# Then created a plot, and tried out a few different variables, and found the ones that had a somewhat coherent relationship with the frequency of the value and year built
+plot = (
+  ggplot(
+    df, mapping=aes(x="YearBuilt", y = "GarageYrBlt"))
+  + geom_point()
+)
+
+plot
+```
+
+2. __Build a classification model labeling houses as being built “before 1980” or “during or after 1980”.__ Your goal is to reach or exceed 90% accuracy. Report your final model choice and any other model parameters you may have tweaked (train-test split ratio, tuning parameters, etc).  
+
+I used a decision tree classifier for my final model. I used a 60/40 train/test split because I tested a couple of split variables and I found that 60/40 gave the best accuracy. I also set the max depth to 5 and minimum samples per leaf to 10, as I found that moving them from what we used in class either didnt change the result or made it worse. In the end, I got 96.92% accuracy with my model.
+
+AI Use: Spent about an hour troubleshooting before asking AI to help solve a couple of errors- Originally I was trying to use columns with text, and I couldn't figure out how to switch them to a format the model could understand, so I ended up using the columns I have currently- I also had a few syntax errors like accidental double periods that it helped me catch.
+
+```{python}
+# Creates a target column for the model which is 1 if built before 1980 and 0 if built during or after
+df_model = df.with_columns(
+  (pl.col('YearBuilt') < 1980).alias('Before1980')
+)
+
+# Selects features and targets
+feature_cols = ['YearRemodAdd', 'GarageYrBlt', 'OverallQual']
+target_col = 'Before1980'
+
+# Selects data for the model
+X = df_model.select(feature_cols)
+y = df_model.select(target_col).to_series()
+
+# Splitting data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.40,
+    random_state=42
+)
+
+# PRinting results of split
+print(f"Total Records: {df.height}")
+print(f"Training set: {X_train.height} rows")
+print(f"Testing set: {X_test.height} rows")
+
+#  Creating baseline model to compare against
+baseline = DummyClassifier(strategy="most_frequent")
+baseline.fit(X_train, y_train)
+
+# Calculate accuracy of baseling model
+base_acc = metrics.accuracy_score(y_test, baseline.predict(X_test))
+print(f"Baseline Accuracy: {base_acc:.2%}")
+
+# Create decision tree model
+clf = DecisionTreeClassifier(
+  max_depth=5, 
+  min_samples_leaf=10,
+  random_state=42
+)
+
+# Fits data to model
+clf.fit(X_train, y_train)
+
+# Predicts values
+y_pred = clf.predict(X_test)
+
+# Calculates and prints accuracy
+model_acc = metrics.accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {model_acc:.2%}")
+```
+

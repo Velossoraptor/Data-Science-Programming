@@ -1,0 +1,246 @@
+---
+title: "Introduction to Machine Learning: Polars & Scikit-Learn"
+author: "Class Notes"
+format:
+  html:
+    code-fold: false
+    embed-resources: true
+---
+
+## Introduction
+
+Goals: Demonstrate the Machine Learning workflow using Polars. Use the Ames Housing dataset to predict whether a home has **Central Air Conditioning**.
+
+```{python}
+import polars as pl
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.dummy import DummyClassifier
+from sklearn import metrics
+from sklearn.datasets import fetch_openml
+from lets_plot import *
+
+LetsPlot.setup_html()
+```
+
+# Load and Prepare Data
+Fetch the data via sklearn, immediately convert it into a Polars DataFrame.
+
+```{python}
+
+# Fetch dataset (returns a bunch with pandas)
+ames = fetch_openml(name="house_prices", as_frame=True, parser='auto')
+
+# Convert to Polars
+df = pl.from_pandas(ames.frame)
+
+# Identify features and target
+# Use numeric features to keep the first model simple
+feature_cols = ['LotArea', 'GrLivArea', 'FullBath', 'KitchenAbvGr', 'YearBuilt', 'Fireplaces']
+target_col = 'CentralAir'
+
+# Select data
+X = df.select(feature_cols)
+y = df.select(target_col).to_series() # Convert target to a Series for sklearn
+```
+
+# Test train split
+The "Golden Rule" of Machine Learning: Never test your model on the same data it used for learning. We set aside 30% of our data as a "Final Exam."
+
+```{python}
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.30,
+    random_state=42
+)
+
+print(f"Total Records: {df.height}")
+print(f"Training set: {X_train.height} rows")
+print(f"Testing set: {X_test.height} rows")
+```
+
+# The Baseline Model
+Calculate the accuracy of a "naive" model (guessing the most frequent class) to determine if our machine learning model is actually adding value.
+
+```{python}
+# DummyClassifier provides a baseline
+baseline = DummyClassifier(strategy="most_frequent")
+baseline.fit(X_train, y_train)
+
+base_acc = metrics.accuracy_score(y_test, baseline.predict(X_test))
+print(f"Baseline Accuracy: {base_acc:.2%}")
+```
+
+
+# Build the Decision Tree
+DecisionTreeClassifier. This model builds a series of logic gates to classify the data.
+
+```{python}
+# 1. Initialize
+clf = DecisionTreeClassifier(max_depth=5, random_state=42)
+
+# 2. Fit
+clf.fit(X_train, y_train)
+
+# 3. Predict
+y_pred = clf.predict(X_test)
+
+# 4. Evaluate
+model_acc = metrics.accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {model_acc:.2%}")
+```
+
+# Visualizing Performance
+We use a Confusion Matrix to see where our model is "confused."
+
+```{python}
+from sklearn.metrics import ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+# Sklearn's plotter currently expects numpy or pandas arrays for the estimator
+ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test, cmap='Greens')
+plt.title("Confusion Matrix: Predicting Central Air")
+plt.show()
+```
+
+```{python}
+
+# 1. Calculate matrix
+cm = metrics.confusion_matrix(y_test, y_pred)
+labels = [str(x) for x in clf.classes_]
+
+# 2. Reshape into a "Tidy" Polars DataFrame
+# This creates a row for every combination of Actual and Predicted
+cm_df = pl.DataFrame({
+    "Actual": [labels[0], labels[0], labels[1], labels[1]],
+    "Predicted": [labels[0], labels[1], labels[0], labels[1]],
+    "Count": cm.flatten()
+})
+
+# 3. Plot using geom_tile
+(
+    ggplot(cm_df, aes(x='Predicted', y='Actual', fill='Count')) +
+    geom_tile(color='white', size=1) +
+    geom_text(aes(label='Count'), color='white', size=20) +
+    scale_fill_gradient(low='#a1d99b', high='#238b45') +
+    labs(
+        title="Confusion Matrix: Central Air Prediction",
+        subtitle="Comparing Actual vs. Predicted Labels",
+        x="Predicted Label",
+        y="Actual Label"
+    ) +
+    theme_minimal()
+)
+```
+
+# Interpretation: Feature Importance
+Look at which variables drove the decision-making process.
+
+```{python}
+
+fi_df = pl.DataFrame({
+    "feature": feature_cols,
+    "importance": clf.feature_importances_
+}).sort("importance", descending=False)
+
+(
+    ggplot(fi_df, aes(x='importance', y='feature')) +
+    geom_bar(stat='identity', fill='#2c3e50') +
+    labs(
+        title="Key Predictors for Central Air",
+        x="Importance Score",
+        y=""
+    ) +
+    theme_minimal()
+)
+```
+
+# Discussion
+## Data Leakage:
+In your assignment, why should you drop the yrbuilt column before predicting if a house was built before 1980?
+
+## Accuracy vs. Baseline:
+If our model was only $1\%$ better than the baseline, would it be worth the complexity of a Decision Tree?
+
+# Another decision tree
+
+```{python}
+
+# Setting hyper-parameters for pre-pruning
+clf_pruned = DecisionTreeClassifier(
+    max_depth=3,            # Very shallow tree
+    min_samples_leaf=20,    # At least 20 houses per leaf
+    random_state=42
+)
+
+clf_pruned.fit(X_train, y_train)
+y_pred = clf_pruned.predict(X_test)
+
+print(f"Pruned Model Accuracy: {metrics.accuracy_score(y_test, y_pred):.2%}")
+```
+
+## Feature importance
+
+```{python}
+
+# 1. Create and prepare the data strictly in Polars first
+fi_active = (
+    pl.DataFrame({
+        "feature": feature_cols,
+        "importance": clf_pruned.feature_importances_
+    })
+    .filter(pl.col("importance") > 0)
+    .with_columns(
+        # Create a pre-formatted string for the labels
+        label_text = pl.col("importance").round(3).cast(pl.Utf8)
+    )
+    .sort("importance", descending=False)
+)
+
+# 2. Plot using the pre-calculated 'label_text' column
+(
+    ggplot(fi_active, aes(x='importance', y='feature')) +
+    geom_bar(stat='identity', fill='#4575b4', width=0.6) +
+    # Use the pre-calculated column name here
+    geom_text(aes(label='label_text'),
+              hjust=-0.2, size=10) +
+    labs(
+        title="Key Variables: Pruned Model (Depth 3)",
+        subtitle="Notice how fewer variables are used compared to the full tree",
+        x="Importance Score",
+        y=""
+    ) +
+    scale_x_continuous(expand=[0, 0.15]) + # Added a bit more padding for the text
+    theme_minimal()
+)
+```
+
+# 0.75 YearBuilt
+
+1. It's a "Contribution Score"
+The total importance of all features in a scikit-learn Decision Tree always sums to 1.0 (100%).
+
+A score of 0.75 means that YearBuilt was responsible for 75% of the total reduction in "uncertainty" (impurity) across the entire model.
+
+It suggests that the model is heavily reliant on this one feature to make its decisions.
+
+2. Information Gain (Purifying the Leaves)
+Think of the tree's job as taking a "messy" pile of data and splitting it into "clean" piles.
+
+Every time the tree splits on YearBuilt, the resulting groups become significantly more "pure" (e.g., one side becomes almost all "AC" and the other side almost all "No AC").
+
+The 0.75 reflects the fact that the splits made using YearBuilt resulted in much larger drops in impurity than the splits made using GrLivArea.
+
+3. "Greedy" Dominance
+In a pruned tree (like your max_depth=3 model), the first split (the Root) is the most important.
+
+Since YearBuilt is likely the very first split, it gets "credit" for the massive amount of separation it does right at the start.
+
+In shallow trees, the top variables often have very high scores (like 0.75) because the tree doesn't have enough levels to find smaller, more subtle patterns in other variables.
+
+4. What it does NOT mean
+
+It is not a Correlation: It doesn't mean that as YearBuilt goes up, CentralAir goes up by 0.75. It just means the variable is useful for splitting.
+
+It is not a Probability: It doesn't mean there is a 75% chance a house has AC.

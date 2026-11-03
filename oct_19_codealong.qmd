@@ -1,0 +1,242 @@
+---
+title: "Class Notes - SQL with the Managers Table"
+subtitle: "Unit 3 Task 1"
+author: "DS 250"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    toc: true
+    toc-location: body
+    code-fold: true
+    code-summary: "Show the code"
+execute:
+  warning: false
+---
+
+## Today’s goal
+
+The assignment asks you to use SQL to read data and Polars to complete calculations. We will practice the same ideas with the `managers` table.
+
+For this example, we will calculate winning percentage:
+
+$$\text{winning percentage} = \frac{\text{wins}}{\text{games managed}} = \frac{W}{G}$$
+
+In the `managers` table:
+
+- `playerID` identifies the manager.
+- `yearID` identifies the year.
+- `G` is games managed.
+- `W` is wins.
+- `L` is losses.
+
+## Connect to the database
+
+Save `lahmansbaseballdb.sqlite` in the same folder as this file.
+
+```{python}
+import sqlite3
+import polars as pl
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+
+sqlite_file = "lahmansbaseballdb.sqlite"
+con = sqlite3.connect(sqlite_file)
+```
+
+## Order of SQL calls
+SELECT ...
+FROM ...
+WHERE ...
+GROUP BY ...
+HAVING ...
+ORDER BY ...
+
+## SELECT and FROM
+
+SQL queries are stored as strings and sent to the database through the connection.
+
+```{python}
+q = """
+SELECT *
+FROM managers
+"""
+
+managers = pl.read_database(query=q, connection=con)
+managers.head()
+```
+
+Inspect the columns and data types before writing a more specific query.
+
+```{python}
+managers.schema
+```
+
+## Select columns and calculate a value
+
+Instead of selecting every column, select only the columns needed for the question. An alias gives a calculated column a readable name.
+
+```{python}
+q = """
+SELECT playerID,
+       yearID,
+       G,
+       W,
+       L,
+       W / G AS win_percentage_wrong
+FROM managers
+LIMIT 10
+"""
+
+results = pl.read_database(query=q, connection=con)
+results
+```
+
+Because `W` and `G` are integers, integer division can produce an incorrect whole-number result. Force decimal division by multiplying by `1.0` or using `CAST()`.
+
+```{python}
+q = """
+SELECT playerID,
+       yearID,
+       G,
+       W,
+       L,
+       W * 1.0 / G AS win_percentage
+FROM managers
+LIMIT 10
+"""
+
+results = pl.read_database(query=q, connection=con)
+results
+```
+
+## ORDER BY and WHERE
+
+`DESC` sorts from largest to smallest. A second sort column breaks ties alphabetically.
+
+```{python}
+q = """
+SELECT playerID,
+       yearID,
+       G,
+       W,
+       L,
+       W * 1.0 / G AS win_percentage
+FROM managers
+WHERE G >= 10
+ORDER BY win_percentage DESC,
+         playerID ASC
+LIMIT 10
+"""
+
+results = pl.read_database(query=q, connection=con)
+results
+```
+
+`WHERE` filters original rows before grouping. If the question asks about a total created by `SUM()`, we need `HAVING` after `GROUP BY` instead.
+
+## GROUP BY and HAVING
+
+Some managers have more than one row for a manager-year combination. Summarize first so that the result contains one row per manager per year.
+
+```{python}
+q = """
+SELECT playerID,
+       yearID,
+       SUM(G) AS total_games,
+       SUM(W) AS total_wins,
+       SUM(L) AS total_losses,
+       SUM(W) * 1.0 / SUM(G) AS win_percentage
+FROM managers
+GROUP BY playerID, yearID
+LIMIT 10
+"""
+
+manager_year_summary = pl.read_database(query=q, connection=con)
+manager_year_summary
+```
+
+Now filter the summarized value. `HAVING` is used because `total_games` is calculated after grouping.
+
+```{python}
+q = """
+SELECT playerID,
+       yearID,
+       SUM(G) AS total_games,
+       SUM(W) AS total_wins,
+       SUM(L) AS total_losses,
+       SUM(W) * 1.0 / SUM(G) AS win_percentage
+FROM managers
+GROUP BY playerID, yearID
+HAVING total_games >= 10
+ORDER BY win_percentage DESC,
+         playerID ASC
+LIMIT 5
+"""
+
+manager_year_summary = pl.read_database(query=q, connection=con)
+manager_year_summary
+```
+
+## Class Question 1: manager-year summary
+
+Use the `managers` table to calculate total games managed and winning percentage for each manager in each year. Keep manager-years with at least 10 games. Sort by winning percentage from highest to lowest, then by `playerID`. Show the top five.
+
+Complete the missing pieces and run the query.
+
+```{python}
+#| eval: false
+q = """
+SELECT playerID,
+       yearID,
+       SUM(G) AS total_games,
+       SUM(W) AS total_wins,
+       SUM(W) * 1.0 / SUM(G) AS win_percentage
+FROM managers
+GROUP BY playerID, yearID
+HAVING total_games >= 10
+ORDER BY win_percentage DESC,
+         playerID ASC
+LIMIT 5
+"""
+
+class_question_1 = pl.read_database(query=q, connection=con)
+class_question_1
+```
+
+## Class Question 2: career summary
+
+For the career question, group only by `playerID`. Keep managers with at least 100 total games managed.
+
+```{python}
+#| eval: false
+q = """
+SELECT playerID,
+       SUM(G) AS career_games,
+       SUM(W) AS career_wins,
+       SUM(W) * 1.0 / SUM(G) AS career_win_percentage
+FROM managers
+GROUP BY playerID
+HAVING career_games >= 100
+ORDER BY career_win_percentage DESC,
+         playerID ASC
+LIMIT 5
+"""
+
+class_question_2 = pl.read_database(query=q, connection=con)
+class_question_2
+```
+
+## Main ideas
+
+- `SELECT` chooses columns and calculations.
+- `FROM` chooses the table.
+- `SUM()` calculates grouped totals.
+- `GROUP BY playerID, yearID` creates one row per manager per year.
+- `GROUP BY playerID` creates one row per manager across all years.
+- `WHERE` filters before grouping.
+- `HAVING` filters after grouping.
+- `ORDER BY ... DESC` sorts from largest to smallest.
+- `LIMIT 5` shows the top five rows.
+- Multiplying by `1.0` avoids integer division.

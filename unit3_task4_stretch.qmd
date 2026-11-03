@@ -1,0 +1,187 @@
+---
+title: "Stretch - Longevity and Highest Paid Positions"
+subtitle: "Unit 3 Task 4"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+sqlite_file = 'lahmansbaseballdb.sqlite'
+# this file must be in the same location as your .qmd or .py file
+con = sqlite3.connect(sqlite_file)
+```
+
+## QUESTION 1
+
+__Write an SQL query that pulls the tables you need into a polars dataframe using nothing more than SELECT and FROM statements. Then, use python polars to identify the top 10 players with the longest Major League Baseball careers. Include their:__
+
+- playerID
+- first_name
+- last_name
+- career_length
+
+Visible in the table are the players with the 10 longest Major League Baseball Careers. The longest career is 21 years, and in the top 10, the lowest is 19 years. I calculated career total by simply calculating when they started, when they ended and what the difference was.
+
+```{python}
+# Select data
+q = """
+  SELECT playerID, yearID 
+  FROM allstarfull
+"""
+q2 = """
+  SELECT playerID, nameFirst, nameLast
+  FROM people
+"""
+
+# Create tables
+career = pl.read_database(q, con)
+people = pl.read_database(q2, con)
+
+# Join on player id and group by player
+result = career.join(
+  people, 
+  on=["playerID"]
+).group_by(
+  "playerID", "nameFirst", "nameLast"
+).agg(
+  # I added one because if someone plays in 1955-1955, it should still be one year I think
+  (pl.col("yearID").max() - pl.col("yearID").min() +1).alias("career_length")
+).sort(
+  ["career_length","playerID"], 
+  descending=[True, False]
+).select([
+  pl.col("playerID"),
+  pl.col("nameFirst").alias("first_name"),
+  pl.col("nameLast").alias("last_name"),
+  pl.col("career_length")
+])
+
+result.head(10)
+```
+
+
+## QUESTION 2
+
+Write an SQL query that pulls the tables you need into a polars dataframe. Then, use python polars to create a summary table showing the average salary for each position (e.g., pitcher, catcher, outfielder). Position information can be found in the fielding table in the POS column.
+Include the following columns:
+
+- position
+- average_salary
+- total_players
+- highest_salary
+(The highest_salary column should display the highest salary ever earned by a player in that position.)
+
+Additionally, add a new column to the summary table you just created to label the average salary:
+
+If the average salary is above $3 million, categorize it as “High Salary.”
+If the average salary is between $2 million and $3 million, categorize it as “Medium Salary.”
+Otherwise, categorize it as “Low Salary.”
+Order the table by average salary in descending order.
+
+_Hint: Beware, it is common for a player to play multiple positions in a single year. For this analysis, each player’s salary should only be counted toward one position in a given year. You get to determine which position to count it towards. Explain how you decided which position a player’s salary should be counted toward in those situations, and why that is a good approach._
+
+I grabbed the number of games played in order to determine which position a player had the most games in, and then selected that as the position I would count their salary toward. 
+
+This is a good approach, because since a player's salary is only for one year, if you counted it toward all positions salaries you would be double or triple counting their pay- however counting it toward the most played position is the most faithful way to assign a full salary to any one position.
+
+The lowest average salary is 1.4M, with catchers having the lowest average. The highest average is 3.3M with first basemen earning quite a bit. The highest salary earned on this table appears to be 28M, which is a crazy amount of money.
+
+_AI Use: I consulted AI to look over my code, and suggest ways to sort player records by position and year, which gave me the suggestion to use .unique(subset=...)_
+```{python}
+# Selecting Data
+q3 = """
+  SELECT playerID, yearID, POS, G 
+  FROM fielding
+"""
+q4 = """
+  SELECT playerID, yearID, salary
+  FROM salaries
+"""
+
+# Creating DFs
+fielding = pl.read_database(q3, con, infer_schema_length=None)
+salaries = pl.read_database(q4, con)
+
+# Suggested by AI: Create a unique subset for players who played multiple positions by sorting games played, and selecting the recorded position with the most games
+fielding_deduplicated = (
+  fielding
+  .sort("G", descending = True)
+  .unique(subset=["playerID", "yearID"], keep="first")
+)
+
+# Join tables 
+joined = fielding_deduplicated.join(
+  salaries,
+  on=["playerID", "yearID"],
+  # Only keep records that match on both ends, that we have all the data for
+  how="inner"
+).group_by(
+  # Group by position
+  "POS"
+).agg(
+  # Get the max salary for the position
+  (pl.col("salary").max()).alias("highest_salary"),
+  # Get the average salary for the position
+  (pl.col("salary").mean()).alias("average_salary"),
+  # Get the number of unique playerIDs corresponding to the position
+  (pl.col("playerID").n_unique().alias("total_players"))
+)
+
+final = (
+  joined.with_columns(
+    # Separate salary brackets
+    pl.when(pl.col("average_salary") > 3_000_000)
+    .then(pl.lit("High Salary"))
+    .when(pl.col("average_salary").is_between(2_000_000, 3_000_000))
+    .then(pl.lit("Medium Salary"))
+    .when(pl.col("average_salary") < 2_000_000)
+    .then(pl.lit("Low Salary"))
+    .alias("salary_category")
+  )
+  .select([
+    # Selecting, reordering and renaming any remaining columns
+        pl.col("POS").alias("position"),
+        pl.col("total_players"),
+        pl.col("average_salary"),
+        pl.col("highest_salary"),
+        pl.col("salary_category")
+  ])
+  .sort("average_salary", descending = True)
+)
+
+
+final
+```

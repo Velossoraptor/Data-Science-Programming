@@ -1,0 +1,204 @@
+---
+title: "Class Notes - SQL and Polars with the Managers Table"
+subtitle: "Unit 3 Task 1 Preparation"
+author: "DS 250"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    toc: true
+    toc-location: body
+    code-fold: true
+    code-summary: "Show the code"
+execute:
+  warning: false
+---
+
+## Today’s goal
+
+The assignment uses SQL to pull a table from the database. After the table is in Python, use Polars to calculate, filter, sort, and display the results.
+
+We will practice the same workflow with the `managers` table.
+
+For this example, we will calculate winning percentage:
+
+$$\text{winning percentage} = \frac{\text{total wins}}{\text{total games managed}} = \frac{W}{G}$$
+
+In the `managers` table:
+
+- `playerID` identifies the manager.
+- `yearID` identifies the year.
+- `G` is games managed.
+- `W` is wins.
+- `L` is losses.
+
+## Connect to the database
+
+Save `lahmansbaseballdb.sqlite` in the same folder as this file.
+
+```{python}
+import sqlite3
+import polars as pl
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+
+sqlite_file = "lahmansbaseballdb.sqlite"
+con = sqlite3.connect(sqlite_file)
+```
+
+## Use SQL only to read the table
+
+The SQL query below selects the complete `managers` table. The calculations for this lesson happen later in Polars.
+
+```{python}
+q = """
+SELECT *
+FROM managers
+"""
+
+managers = pl.read_database(
+    query=q,
+    connection=con,
+    infer_schema_length=None
+)
+
+managers.head()
+```
+
+`infer_schema_length=None` tells Polars to inspect all available rows when determining column types.
+
+Inspect the columns and data types before calculating.
+
+```{python}
+managers.schema
+```
+
+## Polars method chaining
+
+Once the table is in a Polars dataframe, use Polars methods to complete the analysis. The general pattern is:
+
+```text
+group_by → agg → with_columns → filter → sort → head
+```
+
+First, calculate total games, wins, and losses for each manager-year.
+
+```{python}
+manager_year_summary = (
+    managers
+    .group_by("playerID", "yearID")
+    .agg(
+        pl.col("G").sum().alias("total_games"),
+        pl.col("W").sum().alias("total_wins"),
+        pl.col("L").sum().alias("total_losses")
+    )
+)
+
+manager_year_summary.head()
+```
+
+Now add the winning-percentage calculation in Polars.
+
+```{python}
+manager_year_summary = manager_year_summary.with_columns(
+    (
+        pl.col("total_wins") / pl.col("total_games")
+    ).alias("win_percentage")
+)
+
+manager_year_summary.head()
+```
+
+## Filter, sort, and show the top five
+
+Filter on the summarized `total_games` column, sort by the requested columns, and then keep five rows.
+
+```{python}
+manager_year_summary.filter(
+    pl.col("total_games") >= 10
+).sort(
+    ["win_percentage", "playerID"],
+    descending=[True, False]
+).head(5)
+```
+
+## Class Question 1: manager-year summary
+
+This parallels the student assignment’s first question. Use Polars to calculate total games managed and winning percentage for each manager in each year. Keep manager-years with at least 10 games. Sort from highest winning percentage to lowest, then by `playerID`. Show the top five.
+
+```{python}
+#| eval: false
+manager_year_results = (
+    managers
+    .group_by("playerID", "yearID")
+    .agg(
+        pl.col("G").sum().alias("total_games"),
+        pl.col("W").sum().alias("total_wins"),
+        pl.col("L").sum().alias("total_losses")
+    )
+    .with_columns(
+        (
+            pl.col("total_wins") / pl.col("total_games")
+        ).alias("win_percentage")
+    )
+    .filter(pl.col("total_games") >= 10)
+    .sort(
+        ["win_percentage", "playerID"],
+        descending=[True, False]
+    )
+    .head(5)
+)
+
+manager_year_results
+```
+
+## Class Question 2: career summary
+
+For the career question, group only by `playerID` so that all years for each manager are combined. Keep managers with at least 100 total games managed. Sort and show the top five.
+
+```{python}
+#| eval: false
+career_results = (
+    managers
+    # Group everything by manager
+    .group_by("playerID")
+    # Calculate Career totals
+    .agg(
+        # Total games in career
+        pl.col("G").sum().alias("career_games"),
+        # Total wins in career
+        pl.col("W").sum().alias("career_wins"),
+        # Total Losses in career
+        pl.col("L").sum().alias("career_losses")
+    )
+    # Add win percentagea as a column
+    .with_columns(
+        (
+            pl.col("career_wins") / pl.col("career_games")
+        ).alias("career_win_percentage")
+    )
+    # Only include playerIDs with over 100 games in their career
+    .filter(pl.col("career_games") >= 100)
+    # Sort by win percentage and playerID
+    .sort(
+        ["career_win_percentage", "playerID"],
+        descending=[True, False]
+    )
+    .head(5)
+)
+
+career_results
+```
+
+## Main ideas
+
+- SQL connects to the database and reads the source table.
+- Polars performs the grouping and calculations.
+- `group_by("playerID", "yearID")` creates one row per manager-year.
+- `group_by("playerID")` creates one row per manager across all years.
+- `agg()` calculates grouped totals.
+- `with_columns()` creates the winning-percentage column.
+- `filter()` keeps rows meeting the minimum threshold.
+- `sort()` orders the results.
+- `head(5)` shows the top five rows.

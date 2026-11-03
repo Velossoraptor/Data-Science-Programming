@@ -1,0 +1,268 @@
+---
+title: "Class Notes - Polars Joins with the Managers Table"
+subtitle: "Unit 3 Task 3 Preparation"
+author: "DS 250"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    toc: true
+    toc-location: body
+    code-fold: true
+    code-summary: "Show the code"
+execute:
+  warning: false
+---
+
+## Today’s goal
+
+Today we will use SQL to read multiple tables, then use Polars to join and manipulate the data.
+
+Your task uses `salaries`, `collegeplaying`, and `schools` to find players connected to BYU-Idaho. Our classroom parallel uses the `managers` and `teams` tables:
+
+- `managers` tells us which manager led a team in a particular year.
+- `teams` gives us the team name and team statistics for that year.
+- We will join the tables using `yearID` and `teamID`.
+
+## Connect to the database
+
+```{python}
+import sqlite3
+import polars as pl
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+
+sqlite_file = "lahmansbaseballdb.sqlite"
+con = sqlite3.connect(sqlite_file)
+```
+
+## Read the tables with SQL
+
+Use SQL to pull the source tables. The join and later manipulations will happen in Polars.
+
+```{python}
+q = """
+SELECT *
+FROM managers
+"""
+
+managers = pl.read_database(
+    query=q,
+    connection=con,
+    infer_schema_length=None
+)
+
+q = """
+SELECT *
+FROM teams
+"""
+
+teams = pl.read_database(
+    query=q,
+    connection=con,
+    infer_schema_length=None
+)
+
+managers.head(), teams.head()
+```
+
+## Understand the join keys
+
+The same team identifier can appear in many years. Therefore, `teamID` alone is not enough to identify a team record. Use both `yearID` and `teamID` as the join keys.
+
+```{python}
+managers.select("playerID", "yearID", "teamID", "G", "W", "L").head()
+```
+
+```{python}
+teams.select("yearID", "teamID", "name", "W", "L").head()
+```
+
+## Join the tables in Polars
+
+First select only the team columns needed for the join and the final result. Then join the team lookup onto the manager data.
+
+```{python}
+team_lookup = teams.select(
+    "yearID",
+    "teamID",
+    "name"
+)
+
+manager_teams = managers.join(
+    team_lookup,
+    on=["yearID", "teamID"],
+    how="left"
+)
+#Keep every row from the left dataframe: managers
+#Look for matching rows in the right dataframe: team_lookup
+#Match using yearID and teamID
+#If no match is found, fill the columns from team_lookup with null values
+
+manager_teams.select(
+    "playerID",
+    "yearID",
+    "teamID",
+    "name",
+    "G",
+    "W",
+    "L"
+).head()
+```
+
+A left join keeps every row from `managers`, even if a matching team name is not found. An inner join would keep only rows with a match in both dataframes.
+
+## Joins Example
+
+```{python}
+import polars as pl
+
+people = pl.DataFrame({
+    "personID": [1, 2, 3],
+    "name": ["Ana", "Ben", "Cal"],
+    "teamID": ["A", "B", "C"],
+})
+
+mascot = pl.DataFrame({
+    "teamID": ["A", "B", "D"],
+    "mascot": ["Ace", "Bruin", "Dragon"],
+})
+
+people
+mascot
+```
+
+```{python}
+people.join(
+    mascot,
+    on="teamID",
+    how="inner"
+)
+```
+
+```{python}
+people.join(
+    mascot,
+    on="teamID",
+    how="left"
+)
+```
+
+Common 'how' options include:
+- how="inner": keep only rows that match in both dataframes
+- how="full": keep every row from both dataframes; unmatched values become null
+- how="semi": keep left rows that have a match, without adding right-side columns
+- how="anti": keep left rows that do not have a match
+- how="cross": create every possible combination of rows
+
+## Class Question 1: manager-team join
+
+Create a table containing the manager, year, team, team name, games managed, wins, and losses. Use a Polars join with `yearID` and `teamID`.
+
+```{python}
+#| eval: false
+team_lookup = teams.select(
+    "yearID",
+    "teamID",
+    "name"
+)
+
+class_question_1 = (
+    managers
+    .join(
+        # instead of team_lookup you can put Teams V
+        teams,
+        on=["yearID", "teamID"],
+        how="left"
+    )
+    .select(
+        "playerID",
+        "yearID",
+        "teamID",
+        "name",
+        "G",
+        "W",
+        "L"
+    )
+)
+
+class_question_1.head()
+```
+
+## Class Question 2: compare two teams
+
+Choose two teams and compare their winning percentage by year. This example uses the New York Yankees (`NYA`) and Boston Red Sox (`BOS`).
+
+First filter the teams and calculate winning percentage in Polars.
+
+```{python}
+team_comparison = (
+    teams
+    .filter(pl.col("teamID").is_in(["NYA", "BOS"]))
+    .with_columns(
+        (
+            pl.col("W") / pl.col("G")
+        ).alias("win_percentage")
+    )
+    .select(
+        "yearID",
+        "teamID",
+        "name",
+        "W",
+        "L",
+        "win_percentage"
+    )
+    .sort(["yearID", "teamID"])
+)
+
+team_comparison.head()
+```
+
+Now create a line chart to compare the teams over time.
+
+```{python}
+team_comparison_plot = (
+    ggplot(
+        team_comparison,
+        aes(
+            x="yearID",
+            y="win_percentage",
+            color="name"
+        )
+    )
+    + geom_line()
+    + geom_point()
+    + labs(
+        title="Team Winning Percentage by Year",
+        x="Year",
+        y="Winning percentage",
+        color="Team"
+    )
+    +scale_x_continuous(
+        limits = [1905, 1940],
+        format = 'd'
+    )
+    +scale_y_continuous(
+        format='.1%'
+    )
+    +scale_color_manual(
+        values={"Boston Red Sox":"Red", "New York Highlanders":"Blue", "Boston Americans":"Green", "New York Yankees":"Purple"}
+    )
+)
+
+team_comparison_plot
+```
+
+Describe what the chart shows. For example, which team has the higher winning percentage in more seasons? Are there years when the difference is especially large?
+
+## Main ideas
+
+- SQL reads each source table.
+- Polars `.join()` combines dataframes.
+- Use every column needed to uniquely match rows as join keys.
+- A left join preserves every row from the left dataframe.
+- An inner join keeps only matching rows.
+- `filter()` selects the teams or rows of interest.
+- `with_columns()` creates calculated metrics.
+- Lets-Plot can visualize a Polars dataframe.

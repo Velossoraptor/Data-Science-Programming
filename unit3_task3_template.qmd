@@ -1,0 +1,138 @@
+---
+title: "Client Report - Joins"
+subtitle: "Unit 3 Task 3"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+import sqlite3
+from lets_plot import *
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+sqlite_file = 'lahmansbaseballdb.sqlite'
+# this file must be in the same location as your .qmd or .py file
+con = sqlite3.connect(sqlite_file)
+```
+
+## QUESTION 1
+
+__Write an SQL query that pulls in the the salaries table and the collegeplaying table (and any other tables you might need) and store them in polars dataframes. In Python Polars, combine the dataframes to create a list of baseball players who attended BYU-Idaho. The new table should contain five columns: playerID, schoolID, salary, yearID and teamID associated with each salary.__
+
+Not sure what analysis is necessary here, but I noticed that the lowest salaries were around $60,000, and those were in 1986, so its equal to approximately $177,889 to $184,456 now.
+
+```{python}
+q = """
+  SELECT * 
+  FROM salaries
+"""
+
+q2 = """
+  SELECT * 
+  FROM collegeplaying
+"""
+
+salaries = pl.read_database(q, con)
+college = pl.read_database(q2, con)
+
+result = salaries.join(
+  college,
+  on=["playerID"]
+).filter(pl.col("schoolID") == "byu").select(["playerID", "schoolID", "salary", "yearID", "teamID"]).sort("salary", "playerID")
+
+result.head()
+```
+
+
+## QUESTION 2
+
+1. Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Be creative! Write an SQL query to read in the table(s) you need, then use polars to manipulate the data. Finally, make a graph using Lets-Plot to visualize the comparison. What do you learn?
+
+I wanted to compare batting averages of two teams, but specifically by BYU Alumni. You can see in the graph that KCA has lower averages than CAL. However, its worth noting that hancory01 has only ever bat and hit 3 balls, resulting in the 100% batting average. 
+
+Joynewa01 has the best batting average, and has actually played for both teams with almost the same average both times! He has over 4000 total hits, around 1.5k for KCA and 2.5k for CAL.
+
+```{python}
+q3 = """
+  SELECT * 
+  FROM batting
+"""
+
+batting = pl.read_database(q3, con, infer_schema_length=None)
+
+batting
+
+result2 = batting.join(
+  college, 
+  on=["playerID"]
+).filter(
+  (pl.col("schoolID") == "byu") & 
+  (pl.col("teamID").is_in(["KCA", "CAL"]))
+)
+
+
+result2 = result2.group_by(
+  "playerID", "schoolID", "teamID"
+).agg(
+  pl.col("H").sum().alias("total_hits"),
+  pl.col("AB").sum().alias("total_bats"),
+
+).with_columns(
+  (pl.col("total_hits")/pl.col("total_bats")).alias("bat_avg").replace("NaN", 0),
+  (pl.col("total_hits")),
+  (pl.col("total_bats"))
+).select(
+  ["schoolID","playerID", "teamID", "total_hits", "total_bats", "bat_avg"]
+).sort(["bat_avg", "playerID"], descending=[True, False])
+
+plot = (
+  ggplot(
+    result2, 
+    mapping=aes(x="playerID", y="bat_avg", color="teamID", fill="teamID")
+  )
+  + geom_bar(stat="identity")
+  +scale_y_continuous(format = ".0%")
+  +labs(
+    title = "Batting Average of BYU Alumni By Team",
+    x = "Player",
+    y = "Batting Average"
+  )
+)
+
+plot
+```
+
+
+
+```{python}
+result2.head()
+```
