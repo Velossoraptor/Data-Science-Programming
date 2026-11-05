@@ -230,13 +230,13 @@ remodel_plot = (
 remodel_plot
 ```
 
-As seen in plot 3, the overall quality of a house has a weaker relationship to the year built than the other two features. It makes sense looking at this graph, that it was the least important of the the three features used, as the values for a certain year built are all over the place. However, some meaning can be derived as it at least gives a range of quality for houses build before and after 1980.
+As seen in plot 3, the overall quality of a house has a weaker relationship to the year built than the other two features. It makes sense looking at this graph, that it was the least important of the the three features used, as the values for a certain year built are all over the place. However, some meaning can be derived as it at least gives a range of quality for houses build before and after 1980. (You can see that typically houses built after 1980 have higher overall quality, however there is a lot of overlap, and several houses built before 1980 have high scores as well.)
 
 ```{python}
 qual_plot = (
   ggplot(
     df_model, mapping=aes(x="YearBuilt", y="OverallQual", color = "Before1980", fill="Before1980")
-  ) + geom_line()
+  ) + geom_point()
   +scale_x_continuous(format="d")
   +geom_vline(xintercept=1980, linetype="dashed", color = "black")
   +labs(

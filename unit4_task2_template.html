@@ -2264,7 +2264,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   </ul></li>
   </ul>
 </nav>
-<div id="37795a01" class="cell" data-execution_count="1">
+<div id="cd82b368" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -2289,7 +2289,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 </div>
 <section id="model-setup-and-baseline-accuracy-with-dummy-model" class="level1">
 <h1>Model Setup and Baseline Accuracy with Dummy Model</h1>
-<div id="d31187c7" class="cell" data-execution_count="2">
+<div id="597a9b10" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Loads data</span></span>
@@ -2365,7 +2365,7 @@ Baseline Accuracy: 58.05%</code></pre>
 <p>Metric 2: Precision - Precision is the proportion of positive predictions for a particular result that were actually positive. My model precision is 0.969, or 96.9%. This means that ~97% of the time, when my model predicts that a house was built before 1980, it is correct. This metric indicates that my model is high quality.</p>
 <p>Metric 3: Recall - Recall is the proportion of actual positive results that were predicted as positive. My model recall is 0.967, or 96.7%. This means that ~97% of the time, when a house was actually build before 1980, my model correctly predicted that it was. This metric indicates htht my model is high quality.</p>
 <p>Overall: Based on the F1 score of 96.8%, I would say that my model is high quality and good at predicting if a house was built before or after 1980.</p>
-<div id="701495f7" class="cell" data-execution_count="3">
+<div id="426c10b8" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find accuracy</span></span>
@@ -2415,7 +2415,7 @@ F1 Score: 0.968</code></pre>
 </ol>
 <p>I created a new model using the same paramaters as Task1, but I used a random forest classifier instead of a decision tree. I only used three parameters, so I was able to see that all three were fairly important since there were so few. However, I was surprised at how low OverallQual was compared to the other two features. I thought it would be first or second, since older houses will inevitably face wear and tear, but the garage and remodeling years were more important.</p>
 <p>Now that I think abou it, I suppose remodeling could put up the quality of the house, so that would make senes why its more important.</p>
-<div id="f78d76ca" class="cell" data-execution_count="4">
+<div id="e61615f1" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>feature_importance <span class="op">=</span> (</span>
@@ -2453,7 +2453,7 @@ F1 Score: 0.968</code></pre>
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="KJasO1"></div>
+          <div id="hh46b2"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2478,7 +2478,7 @@ F1 Score: 0.968</code></pre>
        };
    }
    
-   const containerDiv = document.getElementById("KJasO1");
+   const containerDiv = document.getElementById("hh46b2");
    let fig = null;
    
    function renderPlot() {
@@ -2580,7 +2580,7 @@ F1 Score: 0.968</code></pre>
 <li><strong>For the 3 most important features, explain their relationship to the target variable. Use a plot to illustrate the relationship.</strong> (3 plots minimum)</li>
 </ol>
 <p>As you can see in plot 1, the garage year build has a really solid relationship that is easy to pick out with the year that a house was built. The garage is usually not build before the house, although they can be build after. So its a good indicator of how new a house could be.</p>
-<div id="698fd38a" class="cell" data-execution_count="5">
+<div id="4427bbff" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>garage_plot <span class="op">=</span> (</span>
@@ -2609,7 +2609,7 @@ F1 Score: 0.968</code></pre>
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="u2WAOj"></div>
+          <div id="2TRtbx"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2634,7 +2634,7 @@ F1 Score: 0.968</code></pre>
        };
    }
    
-   const containerDiv = document.getElementById("u2WAOj");
+   const containerDiv = document.getElementById("2TRtbx");
    let fig = null;
    
    function renderPlot() {
@@ -2987,7 +2987,7 @@ F1 Score: 0.968</code></pre>
 </div>
 </div>
 <p>As seen in plot 2, the year remodeled has a similar relationship to the year built as the garage year built. The houses that were remodeled before 1980 are more likely to have been built before 1980, and vice versa.</p>
-<div id="9e65f94f" class="cell" data-execution_count="6">
+<div id="b68758ae" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>remodel_plot <span class="op">=</span> (</span>
@@ -3016,7 +3016,7 @@ F1 Score: 0.968</code></pre>
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="DFiuJm"></div>
+          <div id="hqsftX"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -3041,7 +3041,7 @@ F1 Score: 0.968</code></pre>
        };
    }
    
-   const containerDiv = document.getElementById("DFiuJm");
+   const containerDiv = document.getElementById("hqsftX");
    let fig = null;
    
    function renderPlot() {
@@ -3393,14 +3393,14 @@ F1 Score: 0.968</code></pre>
 
 </div>
 </div>
-<p>As seen in plot 3, the overall quality of a house has a weaker relationship to the year built than the other two features. It makes sense looking at this graph, that it was the least important of the the three features used, as the values for a certain year built are all over the place. However, some meaning can be derived as it at least gives a range of quality for houses build before and after 1980.</p>
-<div id="b7ca6bdc" class="cell" data-execution_count="7">
+<p>As seen in plot 3, the overall quality of a house has a weaker relationship to the year built than the other two features. It makes sense looking at this graph, that it was the least important of the the three features used, as the values for a certain year built are all over the place. However, some meaning can be derived as it at least gives a range of quality for houses build before and after 1980. (You can see that typically houses built after 1980 have higher overall quality, however there is a lot of overlap, and several houses built before 1980 have high scores as well.)</p>
+<div id="c856f37d" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>qual_plot <span class="op">=</span> (</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  ggplot(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    df_model, mapping<span class="op">=</span>aes(x<span class="op">=</span><span class="st">&quot;YearBuilt&quot;</span>, y<span class="op">=</span><span class="st">&quot;OverallQual&quot;</span>, color <span class="op">=</span> <span class="st">&quot;Before1980&quot;</span>, fill<span class="op">=</span><span class="st">&quot;Before1980&quot;</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">+</span> geom_line()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">+</span> geom_point()</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">+</span>scale_x_continuous(<span class="bu">format</span><span class="op">=</span><span class="st">&quot;d&quot;</span>)</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">+</span>geom_vline(xintercept<span class="op">=</span><span class="dv">1980</span>, linetype<span class="op">=</span><span class="st">&quot;dashed&quot;</span>, color <span class="op">=</span> <span class="st">&quot;black&quot;</span>)</span>
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">+</span>labs(</span>
@@ -3422,7 +3422,7 @@ F1 Score: 0.968</code></pre>
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="K6szLJ"></div>
+          <div id="mz1HnI"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -3447,7 +3447,7 @@ F1 Score: 0.968</code></pre>
        };
    }
    
-   const containerDiv = document.getElementById("K6szLJ");
+   const containerDiv = document.getElementById("mz1HnI");
    let fig = null;
    
    function renderPlot() {
@@ -3730,7 +3730,7 @@ F1 Score: 0.968</code></pre>
 "format":"d"
 }],
 "layers":[{
-"geom":"line",
+"geom":"point",
 "mapping":{
 },
 "data_meta":{
