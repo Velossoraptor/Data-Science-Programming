@@ -1,0 +1,573 @@
+---
+title: "Classification Model Evaluation with Flights"
+format: html
+---
+
+
+```{python}
+# %%
+import polars as pl
+import polars.selectors as cs
+import requests
+import io
+import numpy as np
+from IPython.display import display
+
+from lets_plot import *
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
+)
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# Goal for today
+
+We are building a classification model.
+
+A classification model predicts a category.
+
+For this example, we will try to predict:
+
+airport_code
+
+using the numeric delay information in the dataset.
+
+By the end of class, we want to be able to answer:
+
+1. How good is the model?
+2. Which features were most important?
+3. How do the most important features relate to the target variable?
+
+# Read in flights data from previous project
+
+```{python}
+# %%
+url = "https://github.com/byuidatascience/data4missing/raw/master/data-raw/flights_missing/flights_missing.json"
+
+response = requests.get(url)
+df = pl.read_json(io.BytesIO(response.content))
+
+df
+```
+
+```{python}
+# %%
+df.schema
+```
+
+```{python}
+# %%
+df.null_count()
+```
+
+# Clean the data
+
+Some values are being used as missing or problematic values.
+
+For example:
+
+"n/a"
+"1500+"
+-999
+
+We need to replace those with missing values before modeling.
+
+
+```{python}
+# %%
+df_clean = df.with_columns(
+    [
+        pl.col(col)
+          .cast(pl.Utf8)
+          .replace({
+              "n/a": None,
+              "-999": None,
+              "-999.0": None,
+              "1500+": None
+          })
+          .cast(pl.Float64, strict=False)
+          .alias(col)
+        for col in df.columns
+        if col.startswith("num_of") or col.startswith("minutes_delayed")
+    ]
+)
+
+df_clean
+```
+## Check missing values again.
+
+```{python}
+# %%
+df_clean.null_count()
+```
+
+## Fill missing values
+
+**Most machine learning models cannot handle missing values directly.**
+
+For today, we will use a simple approach:
+
+Fill missing numeric values with the mean of each column.
+
+This is not always the best missing-data strategy, but it lets us focus on model evaluation.
+
+```{python}
+# %%
+numeric_cols = df_clean.select(cs.numeric()).columns
+
+numeric_cols
+```
+
+```{python}
+# %%
+df_clean = df_clean.with_columns(
+    [
+        pl.col(col)
+          .fill_null(pl.col(col).mean())
+          .alias(col)
+        for col in numeric_cols
+    ]
+)
+
+df_clean.null_count()
+```
+# Machine Learning
+## Choose features (variables/parameters) and target
+
+The **target** is what we are trying to predict.
+```{python}
+# %%
+y = df_clean.select("airport_code")
+```
+
+```{python}
+X = df_clean.select(cs.numeric())
+
+X.head()
+```
+
+```{python}
+print(X.shape)
+print(y.shape)
+```
+
+## Split into training and test sets
+
+```{python}
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, 
+    test_size=0.30, 
+    random_state=42,
+    stratify=y
+    # stratify=y helps make sure the training and test sets have similar proportions of each airport code.
+)
+print(X_train.shape, y_train.shape)
+print(X_test.shape, y_test.shape)
+```
+
+## Fit a classification model
+
+We will use a random forest classifier.
+
+A random forest is an ensemble model, meaning it combines many decision trees.
+```{python}
+# %%
+my_classifier = RandomForestClassifier(
+    n_estimators=500,
+    random_state=42
+)
+
+my_classifier.fit(X_train, y_train)
+```
+
+## Make Predictions
+
+```{python}
+# %%
+pred = my_classifier.predict(X_test)
+
+pred[:10]
+```
+
+## Today's actual material: Evaluate the model
+The assignment asks us to describe the quality of the classification model using 2–3 metrics.
+
+We will look at:
+
+- accuracy
+- precision
+- recall
+- F1 score
+
+```{python}
+accuracy = accuracy_score(y_test, pred)
+
+precision = precision_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+recall = recall_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+f1 = f1_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+print(f"Accuracy: {accuracy:.3f}")
+print(f"Precision: {precision:.3f}")
+print(f"Recall: {recall:.3f}")
+print(f"F1 Score: {f1:.3f}")
+
+```
+
+### How to explain these metrics
+
+1. Accuracy tells us the proportion of all predictions that were correct.
+
+- accuracy = correct predictions / total predictions
+
+2. Precision answers:
+
+- When the model predicts a particular airport, how often is it correct? (Goes vertical, the prediction)
+
+3. Recall answers:
+
+- Of the rows that truly belong to a particular airport, how often does the model correctly identify them? (Goes horizontal, the actual)
+  
+4. F1 score balances precision and recall into one number.
+
+- For this multiclass model, we used average="weighted" because we have more than two airport categories.
+
+Type 1 errors are false positives, and they show up when precision is low. Type 2 errors are false negatives, and they show up when recall is low. Accuracy tells us overall correctness, while F1 combines precision and recall into one metric. In a multiclass model, we think about false positives and false negatives one class at a time, such as treating SLC versus “not SLC.”
+
+The type 1 / type 2 error language connects most directly to precision and recall, through the ideas of false positives and false negatives.
+
+For one specific class, such as airport SLC:
+
+Concept	Meaning in this model
+- True positive	The row really is SLC, and the model predicts SLC
+- False positive	The row is not SLC, but the model predicts SLC
+- False negative	The row really is SLC, but the model predicts something else
+- True negative	The row is not SLC, and the model predicts something other than SLC
+
+### Classification report
+The classification report gives precision, recall, and F1 score for each airport.
+```{python}
+# %%
+print(
+    classification_report(
+        y_test,
+        pred,
+        zero_division=0
+    )
+)
+```
+
+### Confusion matrix
+
+A confusion matrix shows where the model is right and where it is confused.
+
+Rows are the actual airport codes.
+
+Columns are the predicted airport codes.
+
+
+```{python}
+# %%
+# Make sure y_test and pred are simple 1D values
+y_test_1d = np.array(y_test).ravel()
+pred_1d = np.array(pred).ravel()
+
+labels = sorted(np.unique(y_test_1d))
+
+cm = confusion_matrix(
+    y_test_1d,
+    pred_1d,
+    labels=labels
+)
+
+cm_df = pl.DataFrame(
+    cm,
+    schema=labels
+).with_columns(
+    pl.Series("actual_airport", labels)
+)
+
+cm_df
+```
+Make it better
+
+```{python}
+# %%
+cm_long = (
+    cm_df
+    .unpivot(
+        index="actual_airport",
+        variable_name="predicted_airport",
+        value_name="count"
+    )
+)
+
+cm_long
+```
+
+
+```{python}
+ggplot(
+    cm_long,
+    aes(x="predicted_airport", y="actual_airport", fill="count")
+) + \
+    geom_tile() + \
+    geom_text(aes(label="count")) + \
+    labs(
+        title="Confusion Matrix",
+        x="Predicted airport",
+        y="Actual airport",
+        fill="Count"
+    )
+```
+
+#### How to interpret the confusion matrix
+
+Correct predictions are on the diagonal.
+
+Mistakes are off the diagonal.
+
+A useful sentence frame:
+
+The model most often confuses airport _____ with airport _____. It predicts airport _____ well because most of its counts are on the diagonal.
+
+### Feature importance
+
+Random forests can report feature importance values.
+
+These values estimate which features were most useful for making predictions.
+
+
+```{python}
+
+feature_importance = (
+    pl.DataFrame({
+        "feature": X_train.columns,
+        "importance": my_classifier.feature_importances_
+    })
+    .sort("importance", descending=True)
+)
+
+feature_importance
+```
+
+#### Plot feature importance
+ Whittle down to the top 10
+
+ ```{python}
+ top_features = feature_importance.head(10)
+
+top_features
+ ```
+
+ ```{python}
+ ggplot(
+    top_features.sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Most Important Features in the Random Forest Model",
+        x="Importance",
+        y="Feature"
+    )
+ ```
+ #### How to discuss feature importance
+
+A useful explanation:
+
+Feature importance tells us which variables the model relied on most when making predictions. A larger importance value means the feature was more useful to the model. It does not necessarily prove causation, but it helps us understand what information the model used.
+
+### Top 3 Features
+
+```{python}
+# %%
+top_3_features = (
+    feature_importance
+    .head(3)
+    .select("feature")
+    .to_series()
+    .to_list()
+)
+
+top_3_features
+```
+
+## Relate the top three features to airport_code
+
+Task 2 requires at least three plots—one for each of the top three features. A density plot lets us compare the distribution of each numeric feature across airports.
+
+
+```{python}
+for feature in top_3_features:
+    display(
+        ggplot(df_clean, aes(x=feature, color="airport_code")) +
+        geom_density() +
+        labs(
+            title=f"{feature} distribution by airport",
+            x=feature,
+            color="Airport"
+        )
+    )
+```
+
+geom_density: The area under the curve over an interval represents the approximate proportion of observations in that interval.
+
+For each plot, describe what you see. Which airports have similar distributions? Which are easiest or hardest to distinguish? Feature importance shows what the model used; the plots help explain the relationship. Neither one proves that a feature causes the airport classification.
+
+- Plot 1: Most important feature vs airport
+
+```{python}
+feature_1 = top_3_features[0]
+
+feature_1_summary = (
+    df_clean
+    .group_by("airport_code")
+    .agg(
+        pl.col(feature_1).mean().alias("mean_feature_value")
+    )
+    .sort("mean_feature_value", descending=True)
+)
+
+feature_1_summary
+```
+
+```{python}
+ggplot(
+    feature_1_summary,
+    aes(x="airport_code", y="mean_feature_value")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title=f"Average {feature_1} by Airport",
+        x="Airport code",
+        y=f"Average {feature_1}"
+    )
+```
+- Plot 2: Second most important feature vs airport
+
+```{python}
+# %%
+feature_2 = top_3_features[1]
+
+feature_2_summary = (
+    df_clean
+    .group_by("airport_code")
+    .agg(
+        pl.col(feature_2).mean().alias("mean_feature_value")
+    )
+    .sort("mean_feature_value", descending=True)
+)
+
+feature_2_summary
+```
+
+```{python}
+ggplot(
+    feature_2_summary,
+    aes(x="airport_code", y="mean_feature_value")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title=f"Average {feature_2} by Airport",
+        x="Airport code",
+        y=f"Average {feature_2}"
+    )
+```
+- Plot 3: Third most important feature vs airport
+
+```{python}
+# %%
+feature_3 = top_3_features[2]
+
+feature_3_summary = (
+    df_clean
+    .group_by("airport_code")
+    .agg(
+        pl.col(feature_3).mean().alias("mean_feature_value")
+    )
+    .sort("mean_feature_value", descending=True)
+)
+
+feature_3_summary
+```
+
+```{python}
+ggplot(
+    feature_3_summary,
+    aes(x="airport_code", y="mean_feature_value")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title=f"Average {feature_3} by Airport",
+        x="Airport code",
+        y=f"Average {feature_3}"
+    )
+```
+
+```{python}
+for feature in top_3_features:
+    feature_summary = (
+        df_clean
+        .group_by("airport_code")
+        .agg(
+            pl.col(feature).mean().alias("mean_feature_value")
+        )
+        .sort("mean_feature_value", descending=True)
+    )
+
+    p = (
+        ggplot(
+            feature_summary,
+            aes(x="airport_code", y="mean_feature_value")
+        )
+        + geom_bar(stat="identity")
+        + labs(
+            title=f"Average {feature} by Airport",
+            x="Airport code",
+            y=f"Average {feature}"
+        )
+    )
+
+    p.show()
+```
+
+
+# What you could write in your report?
+
+1. For the model quality section, you should include something like:
+
+- I evaluated the model using accuracy, precision, and recall. Accuracy measures the percent of all predictions that were correct. Precision measures how often the model was correct when it predicted a particular class. Recall measures how often the model correctly found observations that truly belonged to a class.
+
+2. For the feature importance section:
+
+- The most important features selected by the random forest model were _____, _____, and _____. These features had the largest importance values, which means the model relied on them the most when predicting the airport code.
+
+3. For the relationship-to-target section:
+
+- For the most important feature, the airports differed because _____. The plot shows that airport _____ tended to have higher values of this feature, while airport _____ tended to have lower values.

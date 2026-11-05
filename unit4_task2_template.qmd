@@ -1,0 +1,250 @@
+---
+title: "Client Report -How good is it, really?"
+subtitle: "Unit 4 Task 2"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import numpy as np
+from lets_plot import *
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.dummy import DummyClassifier
+from sklearn.datasets import fetch_openml
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
+)
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# Model Setup and Baseline Accuracy with Dummy Model
+
+```{python}
+# Loads data
+houses = fetch_openml(name="house_prices", as_frame=True, parser='auto')
+
+# Dataframe creation
+df = pl.from_pandas(houses.frame)
+
+# Creates the column with training answers
+df_model = df.with_columns(
+  (pl.col('YearBuilt') < 1980).alias('Before1980')
+)
+
+# Selects features and targets
+feature_cols = ['YearRemodAdd', 'GarageYrBlt', 'OverallQual']
+target_col = 'Before1980'
+
+# Selects data for the model
+X = df_model.select(feature_cols)
+y = df_model.select(target_col).to_series()
+
+# Splitting data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.40,
+    random_state=42,
+    stratify=y
+)
+
+# Printing results of split
+print(f"Total Records: {df.height}")
+print(f"Training set: {X_train.height} rows")
+print(f"Testing set: {X_test.height} rows")
+
+#  Creating baseline model to compare against
+baseline = DummyClassifier(strategy="most_frequent")
+baseline.fit(X_train, y_train)
+
+# Write dummy model score
+base_acc = metrics.accuracy_score(y_test, baseline.predict(X_test))
+print(f"Baseline Accuracy: {base_acc:.2%}")
+
+# Create classifier model
+my_classifier = RandomForestClassifier(
+    n_estimators=500,
+    random_state=42
+)
+
+# Fit data
+my_classifier.fit(X_train, y_train)
+
+# Predict
+pred = my_classifier.predict(X_test)
+pred[:10]
+```
+
+## QUESTION 1
+
+1. __Describe the quality of your classification model using 2-3 different evaluation metrics.__ You also need to explain how to define/interpret each of the evaluation metrics you use.  
+
+Metric 1: Accuracy - Accuracy is the proportion of all predictions that were correct. My model accuracy is 0.967, or 96.7%. This means that ~97% of the time, my model is correct in guessing which houses are before or after 1980. So I would say that this metric indicates that my model is pretty high quality.
+
+Metric 2: Precision - Precision is the proportion of positive predictions for a particular result that were actually positive. My model precision is 0.969, or 96.9%. This means that ~97% of the time, when my model predicts that a house was built before 1980, it is correct. This metric indicates that my model is high quality.
+
+Metric 3: Recall - Recall is the proportion of actual positive results that were predicted as positive. My model recall is 0.967, or 96.7%. This means that ~97% of the time, when a house was actually build before 1980, my model correctly predicted that it was. This metric indicates htht my model is high quality.
+
+Overall: Based on the F1 score of 96.8%, I would say that my model is high quality and good at predicting if a house was built before or after 1980.
+
+```{python}
+# Find accuracy
+accuracy = accuracy_score(y_test, pred)
+
+# Find precision
+precision = precision_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+# Find recall
+recall = recall_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+# Find combined F-1 score
+f1 = f1_score(
+    y_test,
+    pred,
+    average="weighted",
+    zero_division=0
+)
+
+print(f"Accuracy: {accuracy:.3f}")
+print(f"Precision: {precision:.3f}")
+print(f"Recall: {recall:.3f}")
+print(f"F1 Score: {f1:.3f}")
+
+```
+
+## QUESTION 2
+
+1. __Justify your classification model by discussing the most important features selected by your model.__ This discussion should include a plot of permutation importance values for the most important features. Were there any features you thought would be importance but weren't?
+
+I created a new model using the same paramaters as Task1, but I used a random forest classifier instead of a decision tree. I only used three parameters, so I was able to see that all three were fairly important since there were so few. However, I was surprised at how low OverallQual was compared to the other two features. I thought it would be first or second, since older houses will inevitably face wear and tear, but the garage and remodeling years were more important. 
+
+Now that I think abou it, I suppose remodeling could put up the quality of the house, so that would make senes why its more important.
+
+```{python}
+feature_importance = (
+    pl.DataFrame({
+        "feature": X_train.columns,
+        "importance": my_classifier.feature_importances_
+    })
+    .sort("importance", descending=True)
+)
+
+top_features = feature_importance.head(10)
+
+plot = (
+  ggplot(
+    top_features.sort("importance"),
+    aes(x="importance", y="feature")
+) 
++ geom_bar(stat="identity")
++ labs(
+        title="Most Important Features in the Random Forest Model",
+        x="Importance",
+        y="Feature"
+    )
+ )
+
+plot
+```
+
+## QUESTION 3
+
+1. __For the 3 most important features, explain their relationship to the target variable. Use a plot to illustrate the relationship.__ (3 plots minimum)
+
+As you can see in plot 1, the garage year build has a really solid relationship that is easy to pick out with the year that a house was built. The garage is usually not build before the house, although they can be build after. So its a good indicator of how new a house could be.
+
+```{python}
+garage_plot = (
+  ggplot(
+    df_model, mapping=aes(x="YearBuilt", y="GarageYrBlt", color = "Before1980")
+  ) + geom_point()
+  +scale_x_continuous(format="d")
+  +scale_y_continuous(format="d")
+  +geom_vline(xintercept=1980, linetype="dashed", color = "black")
+  +labs(
+    title = "Garage Year Built vs. Year Built",
+    x = "Year Built",
+    y = "Garage Year Built"
+  )
+)
+
+garage_plot
+
+```
+
+As seen in plot 2, the year remodeled has a similar relationship to the year built as the garage year built. The houses that were remodeled before 1980 are more likely to have been built before 1980, and vice versa.
+
+```{python}
+remodel_plot = (
+  ggplot(
+    df_model, mapping=aes(x="YearBuilt", y="YearRemodAdd", color = "Before1980")
+  ) + geom_point()
+  +scale_x_continuous(format="d")
+  +scale_y_continuous(format="d")
+  +geom_vline(xintercept=1980, linetype="dashed", color = "black")
+  +labs(
+    title = "Year Remodeled vs. Year Built",
+    x = "Year Built",
+    y = "Year Remodeled"
+  )
+)
+
+remodel_plot
+```
+
+As seen in plot 3, the overall quality of a house has a weaker relationship to the year built than the other two features. It makes sense looking at this graph, that it was the least important of the the three features used, as the values for a certain year built are all over the place. However, some meaning can be derived as it at least gives a range of quality for houses build before and after 1980.
+
+```{python}
+qual_plot = (
+  ggplot(
+    df_model, mapping=aes(x="YearBuilt", y="OverallQual", color = "Before1980", fill="Before1980")
+  ) + geom_line()
+  +scale_x_continuous(format="d")
+  +geom_vline(xintercept=1980, linetype="dashed", color = "black")
+  +labs(
+    title = "Overall Quality vs. Year Built",
+    x = "Year Built",
+    y = "Overall Quality"
+  )
+)
+
+qual_plot
+```
