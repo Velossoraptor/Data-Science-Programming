@@ -2260,7 +2260,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   <li><a href="#question-2" id="toc-question-2">QUESTION 2</a></li>
   </ul>
 </nav>
-<div id="3a74235c" class="cell" data-execution_count="1">
+<div id="87771eb8" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -2271,7 +2271,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>LetsPlot.setup_html(isolated_frame<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="54cdcac2" class="cell" data-execution_count="2">
+<div id="4deff7e0" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html</span></span>
@@ -2286,7 +2286,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <h2 class="anchored" data-anchor-id="question-1">QUESTION 1</h2>
 <p><strong>Write an SQL query that pulls in the the salaries table and the collegeplaying table (and any other tables you might need) and store them in polars dataframes. In Python Polars, combine the dataframes to create a list of baseball players who attended BYU-Idaho. The new table should contain five columns: playerID, schoolID, salary, yearID and teamID associated with each salary.</strong></p>
 <p>Not sure what analysis is necessary here, but I noticed that the lowest salaries were around $60,000, and those were in 1986, so its equal to approximately $177,889 to $184,456 now.</p>
-<div id="744eabde" class="cell" data-execution_count="3">
+<div id="d94acafc" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
@@ -2305,7 +2305,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> salaries.join(</span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  college,</span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  on<span class="op">=</span>[<span class="st">&quot;playerID&quot;</span>]</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>).<span class="bu">filter</span>(pl.col(<span class="st">&quot;schoolID&quot;</span>) <span class="op">==</span> <span class="st">&quot;byu&quot;</span>).select([<span class="st">&quot;playerID&quot;</span>, <span class="st">&quot;schoolID&quot;</span>, <span class="st">&quot;salary&quot;</span>, <span class="st">&quot;yearID&quot;</span>, <span class="st">&quot;teamID&quot;</span>]).sort(<span class="st">&quot;salary&quot;</span>, <span class="st">&quot;playerID&quot;</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>).<span class="bu">filter</span>(pl.col(<span class="st">&quot;schoolID&quot;</span>) <span class="op">==</span> <span class="st">&quot;idbyuid&quot;</span>).select([<span class="st">&quot;playerID&quot;</span>, <span class="st">&quot;schoolID&quot;</span>, <span class="st">&quot;salary&quot;</span>, <span class="st">&quot;yearID&quot;</span>, <span class="st">&quot;teamID&quot;</span>]).sort(<span class="st">&quot;salary&quot;</span>, <span class="st">&quot;playerID&quot;</span>)</span>
 <span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>result.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
@@ -2337,39 +2337,39 @@ white-space: pre-wrap;
 </thead>
 <tbody>
 <tr class="odd">
-<td>&quot;snydeco02&quot;</td>
-<td>&quot;byu&quot;</td>
-<td>60000.0</td>
-<td>1986</td>
-<td>&quot;CLE&quot;</td>
+<td>&quot;stephga01&quot;</td>
+<td>&quot;idbyuid&quot;</td>
+<td>150000.0</td>
+<td>1997</td>
+<td>&quot;PHI&quot;</td>
 </tr>
 <tr class="even">
-<td>&quot;snydeco02&quot;</td>
-<td>&quot;byu&quot;</td>
-<td>60000.0</td>
-<td>1986</td>
-<td>&quot;CLE&quot;</td>
-</tr>
-<tr class="odd">
-<td>&quot;snydeco02&quot;</td>
-<td>&quot;byu&quot;</td>
-<td>60000.0</td>
-<td>1986</td>
-<td>&quot;CLE&quot;</td>
-</tr>
-<tr class="even">
-<td>&quot;ritchwa01&quot;</td>
-<td>&quot;byu&quot;</td>
-<td>62500.0</td>
-<td>1987</td>
+<td>&quot;stephga01&quot;</td>
+<td>&quot;idbyuid&quot;</td>
+<td>150000.0</td>
+<td>1997</td>
 <td>&quot;PHI&quot;</td>
 </tr>
 <tr class="odd">
-<td>&quot;joynewa01&quot;</td>
-<td>&quot;byu&quot;</td>
-<td>65000.0</td>
-<td>1986</td>
-<td>&quot;CAL&quot;</td>
+<td>&quot;stephga01&quot;</td>
+<td>&quot;idbyuid&quot;</td>
+<td>185000.0</td>
+<td>1998</td>
+<td>&quot;PHI&quot;</td>
+</tr>
+<tr class="even">
+<td>&quot;stephga01&quot;</td>
+<td>&quot;idbyuid&quot;</td>
+<td>185000.0</td>
+<td>1998</td>
+<td>&quot;PHI&quot;</td>
+</tr>
+<tr class="odd">
+<td>&quot;stephga01&quot;</td>
+<td>&quot;idbyuid&quot;</td>
+<td>215000.0</td>
+<td>1999</td>
+<td>&quot;SLN&quot;</td>
 </tr>
 </tbody>
 </table>
@@ -2382,9 +2382,9 @@ white-space: pre-wrap;
 <ol type="1">
 <li>Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Be creative! Write an SQL query to read in the table(s) you need, then use polars to manipulate the data. Finally, make a graph using Lets-Plot to visualize the comparison. What do you learn?</li>
 </ol>
-<p>I wanted to compare batting averages of two teams, but specifically by BYU Alumni. You can see in the graph that KCA has lower averages than CAL. However, its worth noting that hancory01 has only ever bat and hit 3 balls, resulting in the 100% batting average.</p>
-<p>Joynewa01 has the best batting average, and has actually played for both teams with almost the same average both times! He has over 4000 total hits, around 1.5k for KCA and 2.5k for CAL.</p>
-<div id="69af7fa1" class="cell" data-execution_count="4">
+<p>I wanted to compare batting averages of two teams, but specifically by BYUI Alumni. You can see in the graph that there are only two BYUI alumni included in the dataset.</p>
+<p>stephga01 has the best batting average, and has actually played for multiple teams with almost the same average both times! lindsma01 has 2 bats on FLO and 0 hits, so it seems like he didn’t play much, and had bad luck when he did.</p>
+<div id="9e6cd84e" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>q3 <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
@@ -2400,8 +2400,8 @@ white-space: pre-wrap;
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  college, </span>
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  on<span class="op">=</span>[<span class="st">&quot;playerID&quot;</span>]</span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>).<span class="bu">filter</span>(</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  (pl.col(<span class="st">&quot;schoolID&quot;</span>) <span class="op">==</span> <span class="st">&quot;byu&quot;</span>) <span class="op">&amp;</span> </span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  (pl.col(<span class="st">&quot;teamID&quot;</span>).is_in([<span class="st">&quot;KCA&quot;</span>, <span class="st">&quot;CAL&quot;</span>]))</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  (pl.col(<span class="st">&quot;schoolID&quot;</span>) <span class="op">==</span> <span class="st">&quot;idbyuid&quot;</span>) <span class="op">&amp;</span> </span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  (pl.col(<span class="st">&quot;teamID&quot;</span>).is_in([<span class="st">&quot;PHI&quot;</span>, <span class="st">&quot;FLO&quot;</span>]))</span>
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
@@ -2445,7 +2445,7 @@ white-space: pre-wrap;
 //# sourceMappingURL=lets-plot.js.map</script>
    
    
-          <div id="abiXTg"></div>
+          <div id="asUB86"></div>
    <script type="text/javascript" data-lets-plot-script="plot">
    
    (function() {
@@ -2470,16 +2470,16 @@ white-space: pre-wrap;
        };
    }
    
-   const containerDiv = document.getElementById("abiXTg");
+   const containerDiv = document.getElementById("asUB86");
    let fig = null;
    
    function renderPlot() {
        if (fig === null) {
            const plotSpec = {
 "data":{
-"playerID":["hancory01","joynewa01","joynewa01","iorgda01","howardo01","guthrje01","pastocl01"],
-"teamID":["CAL","KCA","CAL","KCA","CAL","KCA","KCA"],
-"bat_avg":[1.0,0.2930943595150237,0.28834164588528677,0.24383561643835616,0.21428571428571427,0.15384615384615385,0.125]
+"playerID":["stephga01","lindsma01"],
+"teamID":["PHI","FLO"],
+"bat_avg":[0.10526315789473684,0.0]
 },
 "mapping":{
 "x":"playerID",
@@ -2582,7 +2582,7 @@ white-space: pre-wrap;
 
 </div>
 </div>
-<div id="076b3e07" class="cell" data-execution_count="5">
+<div id="f6efc342" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>result2.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2595,7 +2595,7 @@ text-align: right;
 white-space: pre-wrap;
 }
 </style>
-<small>shape: (5, 6)</small>
+<small>shape: (2, 6)</small>
 <table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
@@ -2617,44 +2617,20 @@ white-space: pre-wrap;
 </thead>
 <tbody>
 <tr class="odd">
-<td>&quot;byu&quot;</td>
-<td>&quot;hancory01&quot;</td>
-<td>&quot;CAL&quot;</td>
-<td>3</td>
-<td>3</td>
-<td>1.0</td>
+<td>&quot;idbyuid&quot;</td>
+<td>&quot;stephga01&quot;</td>
+<td>&quot;PHI&quot;</td>
+<td>8</td>
+<td>76</td>
+<td>0.105263</td>
 </tr>
 <tr class="even">
-<td>&quot;byu&quot;</td>
-<td>&quot;joynewa01&quot;</td>
-<td>&quot;KCA&quot;</td>
-<td>1668</td>
-<td>5691</td>
-<td>0.293094</td>
-</tr>
-<tr class="odd">
-<td>&quot;byu&quot;</td>
-<td>&quot;joynewa01&quot;</td>
-<td>&quot;CAL&quot;</td>
-<td>2775</td>
-<td>9624</td>
-<td>0.288342</td>
-</tr>
-<tr class="even">
-<td>&quot;byu&quot;</td>
-<td>&quot;iorgda01&quot;</td>
-<td>&quot;KCA&quot;</td>
-<td>267</td>
-<td>1095</td>
-<td>0.243836</td>
-</tr>
-<tr class="odd">
-<td>&quot;byu&quot;</td>
-<td>&quot;howardo01&quot;</td>
-<td>&quot;CAL&quot;</td>
-<td>63</td>
-<td>294</td>
-<td>0.214286</td>
+<td>&quot;idbyuid&quot;</td>
+<td>&quot;lindsma01&quot;</td>
+<td>&quot;FLO&quot;</td>
+<td>0</td>
+<td>2</td>
+<td>0.0</td>
 </tr>
 </tbody>
 </table>

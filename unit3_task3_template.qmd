@@ -67,7 +67,7 @@ college = pl.read_database(q2, con)
 result = salaries.join(
   college,
   on=["playerID"]
-).filter(pl.col("schoolID") == "byu").select(["playerID", "schoolID", "salary", "yearID", "teamID"]).sort("salary", "playerID")
+).filter(pl.col("schoolID") == "idbyuid").select(["playerID", "schoolID", "salary", "yearID", "teamID"]).sort("salary", "playerID")
 
 result.head()
 ```
@@ -77,9 +77,9 @@ result.head()
 
 1. Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Be creative! Write an SQL query to read in the table(s) you need, then use polars to manipulate the data. Finally, make a graph using Lets-Plot to visualize the comparison. What do you learn?
 
-I wanted to compare batting averages of two teams, but specifically by BYU Alumni. You can see in the graph that KCA has lower averages than CAL. However, its worth noting that hancory01 has only ever bat and hit 3 balls, resulting in the 100% batting average. 
+I wanted to compare batting averages of two teams, but specifically by BYUI Alumni. You can see in the graph that there are only two BYUI alumni included in the dataset.  
 
-Joynewa01 has the best batting average, and has actually played for both teams with almost the same average both times! He has over 4000 total hits, around 1.5k for KCA and 2.5k for CAL.
+stephga01 has the best batting average, and has actually played for multiple teams with almost the same average both times! lindsma01 has 2 bats on FLO and 0 hits, so it seems like he didn't play much, and had bad luck when he did.
 
 ```{python}
 q3 = """
@@ -95,8 +95,8 @@ result2 = batting.join(
   college, 
   on=["playerID"]
 ).filter(
-  (pl.col("schoolID") == "byu") & 
-  (pl.col("teamID").is_in(["KCA", "CAL"]))
+  (pl.col("schoolID") == "idbyuid") & 
+  (pl.col("teamID").is_in(["PHI", "FLO"]))
 )
 
 

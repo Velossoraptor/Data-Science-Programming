@@ -1,0 +1,524 @@
+---
+title: "Classification Models, One-Hot Encoding, and Feature Importance"
+format: html
+---
+
+
+```{python}
+import polars as pl
+import polars.selectors as cs
+import requests
+import io
+import numpy as np
+
+from lets_plot import *
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report,
+    confusion_matrix
+)
+from sklearn.inspection import permutation_importance
+
+LetsPlot.setup_html(isolated_frame=True)
+
+```
+# Goals for today
+
+Today we will repeat the classification exercise using three models.
+
+We will compare:
+
+Decision Tree
+Random Forest
+Logistic Regression
+
+We will use the models to predict:
+
+airport_code
+
+We will also learn how to include categorical variables using one-hot encoding.
+
+# Flights Data Prep
+```{python}
+url = "https://github.com/byuidatascience/data4missing/raw/master/data-raw/flights_missing/flights_missing.json"
+
+response = requests.get(url)
+df = pl.read_json(io.BytesIO(response.content))
+
+df
+```
+
+
+```{python}
+delay_cols = [
+    col for col in df.columns
+    if col.startswith("num_of") or col.startswith("minutes_delayed")
+]
+
+delay_cols
+```
+
+
+```{python}
+df_clean = df.with_columns(
+    [
+        pl.col(col)
+          .cast(pl.Utf8)
+          .replace({
+              "n/a": None,
+              "-999": None,
+              "-999.0": None,
+              "1500+": None
+          })
+          .cast(pl.Float64, strict=False)
+          .alias(col)
+        for col in delay_cols
+    ]
+)
+
+df_clean
+```
+
+## Fill missing values (today we want to work with non-numerical values too)
+
+Most machine learning models cannot handle missing values directly.
+
+For today, we will use a simple strategy:
+
+1. fill numeric missing values with the column mean
+2. fill categorical missing values with "Missing"
+
+
+```{python}
+numeric_cols = df_clean.select(cs.numeric()).columns
+string_cols = df_clean.select(cs.string()).columns
+
+numeric_cols
+```
+
+```{python}
+string_cols
+```
+
+```{python}
+
+df_clean = df_clean.with_columns(
+    [
+        pl.col(col)
+          .fill_null(pl.col(col).mean())
+          .alias(col)
+        for col in numeric_cols
+    ]
+).with_columns(
+    [
+        pl.col(col)
+          .fill_null("Missing")
+          .alias(col)
+        for col in string_cols
+    ]
+)
+
+df_clean.null_count()
+```
+
+# Machine Learning setup
+Choose target and features
+
+The target is what we want to predict.
+
+
+```{python}
+
+target = "airport_code"
+```
+We should not use airport_name as a feature because it gives away the answer. If you know the airport name, you basically know the airport code.
+
+```{python}
+features = df_clean.drop(["airport_code", "airport_name", "num_of_flights_total"], strict=False)
+
+features.head()
+```
+
+```{python}
+# Target: 
+y = df_clean.select(target).to_series()
+
+y.head()
+```
+
+## Why one-hot encoding?
+
+Many machine learning models need numeric inputs.
+
+But we have some categorical columns, such as:
+
+month
+
+A model cannot directly understand text labels like:
+
+January, February, March
+
+So we convert categorical variables into 0/1 indicator columns.
+
+This is called one-hot encoding.
+
+For example, a month column can become:
+
+month_January
+month_February
+month_March
+...
+
+Each row gets a 1 for the month it belongs to and 0 for the other months.
+
+## One-hot encode categorical features
+```{python}
+# Find the string columns
+# IMPORTANT TO USE ON THE NEXT ASSIGNMENT!!!!
+categorical_features = features.select(cs.string()).columns
+
+categorical_features
+```
+
+```{python}
+# one-hot encode string columns
+x_encoded = features.to_dummies(
+    columns=categorical_features
+)
+
+x_encoded.head()
+```
+
+```{python}
+x_encoded.schema
+```
+
+# Train/Test Split
+
+```{python}
+X = x_encoded
+```
+```{python}
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+print(X_train.shape, y_train.shape)
+print(X_test.shape, y_test.shape)
+```
+# Model 1: Decision Tree
+
+```{python}
+decision_tree = DecisionTreeClassifier(
+    random_state=42,
+    max_depth=4
+)
+
+decision_tree.fit(X_train, y_train)
+
+pred_tree = decision_tree.predict(X_test)
+```
+# Model 2: Random Forest
+
+```{python}
+random_forest = RandomForestClassifier(
+    n_estimators=500,
+    random_state=42
+)
+
+random_forest.fit(X_train, y_train)
+
+pred_forest = random_forest.predict(X_test)
+```
+
+# Model 3: Logistic Regression
+Logistic regression is a classification model that estimates probabilities for each class.
+
+Because logistic regression is sensitive to variable scale, we will use a scaler.
+```{python}
+logistic_model = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(
+        max_iter=5000,
+        random_state=42
+    )
+)
+
+logistic_model.fit(X_train, y_train)
+
+pred_logistic = logistic_model.predict(X_test)
+```
+## Scaling
+- Logistic regression is sensitive to scale because it uses the numeric size of the features when estimating its coefficients.
+
+- A variable with large numbers can have a different influence on the optimization process than a variable with small numbers. Scaling puts the numeric variables onto a more comparable scale.
+
+- StandardScaler() transforms each numeric column so that it has approximately:
+
+mean = 0
+standard deviation = 1
+
+So instead of one feature being measured in thousands and another being measured in small decimals, they are put on a more comparable scale.
+
+# Compare model performance
+
+```{python}
+def model_metrics(model_name, y_true, y_pred):
+    return {
+        "model": model_name,
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision_weighted": precision_score(
+            y_true, y_pred, average="weighted", zero_division=0
+        ),
+        "recall_weighted": recall_score(
+            y_true, y_pred, average="weighted", zero_division=0
+        ),
+        "f1_weighted": f1_score(
+            y_true, y_pred, average="weighted", zero_division=0
+        )
+    }
+```
+
+```{python}
+metrics_table = pl.DataFrame([
+    model_metrics("Decision Tree", y_test, pred_tree),
+    model_metrics("Random Forest", y_test, pred_forest),
+    model_metrics("Logistic Regression", y_test, pred_logistic)
+])
+
+metrics_table
+```
+# How to explain the metrics
+
+1. Accuracy tells us the proportion of all predictions that were correct.
+
+accuracy = correct predictions / total predictions
+
+2. Precision answers:
+
+When the model predicts a particular airport, how often is it correct?
+
+3. Recall answers:
+
+Of the rows that truly belong to a particular airport, how often does the model correctly identify them?
+
+4. F1 score balances precision and recall into one number.
+
+For this multiclass model, we use weighted averages because some airport codes may appear more often than others.
+
+# Confusion Matrix
+Here is the confusion matrix for the random forest.
+
+```{python}
+labels = sorted(np.unique(np.array(y_test).ravel()))
+
+cm = confusion_matrix(
+    np.array(y_test).ravel(),
+    np.array(pred_forest).ravel(),
+    labels=labels
+)
+
+cm_df = pl.DataFrame(
+    cm,
+    schema=labels
+).with_columns(
+    pl.Series("actual_airport", labels)
+)
+
+cm_long = cm_df.unpivot(
+    index="actual_airport",
+    variable_name="predicted_airport",
+    value_name="count"
+)
+
+cm_long
+```
+
+```{python}
+# CONFUSION MATRIX SETUP, LOOK AT THIS FOR THE NEXT ASSIGNMENT
+ggplot(
+    cm_long,
+    aes(x="predicted_airport", y="actual_airport", fill="count")
+) + \
+    geom_tile() + \
+    geom_text(aes(label="count")) + \
+    labs(
+        title="Confusion Matrix for Random Forest Model",
+        x="Predicted airport",
+        y="Actual airport",
+        fill="Count"
+    )
+```
+
+# Feature importance
+
+Different models define “importance” in different ways.
+
+For tree-based models:
+
+importance is based on how useful a feature was for splitting the data
+
+## Tree importance
+```{python}
+tree_importance = (
+    pl.DataFrame({
+        "feature": X_train.columns,
+        "importance": decision_tree.feature_importances_
+    })
+    .sort("importance", descending=True)
+)
+
+tree_importance.head(10)
+```
+```{python}
+ggplot(
+    tree_importance.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Decision Tree Feature Importance",
+        x="Importance",
+        y="Feature"
+    )
+```
+## Random Forest
+
+```{python}
+forest_importance = (
+    pl.DataFrame({
+        "feature": X_train.columns,
+        "importance": random_forest.feature_importances_
+    })
+    .sort("importance", descending=True)
+)
+
+forest_importance.head(10)
+```
+
+```{python}
+# %%
+ggplot(
+    forest_importance.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Random Forest Feature Importance",
+        x="Importance",
+        y="Feature"
+    )
+```
+## Logistic regression:
+
+importance is based on the size of the model coefficient
+since this is multiclass, we use the average absolute coefficient across classes
+
+The logistic regression model is inside a pipeline.
+
+We can pull it out like this:
+
+```{python}
+logistic_regression_step = logistic_model.named_steps["logisticregression"]
+
+logistic_importance_values = np.mean(
+    np.abs(logistic_regression_step.coef_),
+    axis=0
+)
+
+logistic_importance = (
+    pl.DataFrame({
+        "feature": X_train.columns,
+        "importance": logistic_importance_values
+    })
+    .sort("importance", descending=True)
+)
+
+logistic_importance.head(10)
+```
+
+## Permutation importance across all three models
+
+The models calculate built-in importance values differently. To compare them more fairly, use permutation importance on the same test set and the same scoring metric.
+
+Permutation importance shuffles one feature at a time. If the model's score drops a lot, that feature was useful for predictions on unseen data.
+
+```{python}
+def permutation_importance_table(model, model_name):
+    result = permutation_importance(
+        model, X_test, y_test,
+        scoring="f1_weighted",
+        n_repeats=10,
+        random_state=42
+    )
+
+    return pl.DataFrame({
+        "model": model_name,
+        "feature": X_test.columns,
+        "importance": result.importances_mean,
+        "std": result.importances_std
+    }).sort("importance", descending=True)
+```
+
+```{python}
+tree_permutation = permutation_importance_table(decision_tree, "Decision Tree")
+forest_permutation = permutation_importance_table(random_forest, "Random Forest")
+logistic_permutation = permutation_importance_table(logistic_model, "Logistic Regression")
+
+tree_permutation.head(10)
+```
+
+Use the same function for the other models. Compare whether the models identify similar or different important features.
+
+```{python}
+ggplot(
+    tree_permutation.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Decision Tree Permutation Importance",
+        x="Mean decrease in weighted F1",
+        y="Feature"
+    )
+```
+
+## Classification reports for all three models
+
+```{python}
+print("Decision Tree")
+print(classification_report(y_test, pred_tree, zero_division=0))
+
+print("Random Forest")
+print(classification_report(y_test, pred_forest, zero_division=0))
+
+print("Logistic Regression")
+print(classification_report(y_test, pred_logistic, zero_division=0))
+```
+
+## Make a recommendation
+
+Recommend one model to the client. Support your recommendation with:
+
+- the evaluation metrics,
+- the classification reports,
+- the feature-importance results,
+- interpretability, and
+- model complexity or computational cost.
+
+The model with the highest accuracy is not automatically the best choice. Explain the tradeoff.

@@ -1,0 +1,252 @@
+---
+title: "Client Report - Show me!"
+subtitle: "Unit 4 Task 3"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import polars as pl
+import polars.selectors as cs
+import numpy as np
+from lets_plot import *
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import fetch_openml
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.inspection import permutation_importance
+
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+ames = fetch_openml(name="house_prices", as_frame=True, parser='auto')
+
+df = pl.from_pandas(ames.frame)
+```
+
+## QUESTION 1
+
+1. __Repeat the classification exercise using 2 different algorithms/models. Explain the differences between the 3 models__ (your original one, and the 2 new ones for this task).
+
+Decision tree splits groups at junctions, sorting them into buckets called leaves that correspond with the most likely result. In this case, before or after 1980.
+
+Random forest is a collection of decision trees that are trained on subsets of the data, and then results are averaged. 
+
+Logistic regression is a probabilistic model that maps values 0-100% likely, or 0-1.
+
+```{python}
+#select y data
+df_model = df.with_columns(
+  (pl.col('YearBuilt') < 1980).alias('Before1980')
+)
+
+y = df_model.select('Before1980').to_series()
+
+# drop answer key and columns that are mostly null
+features = df_model.drop(['Before1980', 'YearBuilt', 'LotFrontage'])
+
+# Select categorical features
+categorical_features = features.select(cs.string()).columns
+
+x_encoded = features.to_dummies(
+    columns=categorical_features
+)
+
+# Selecting x data
+X = x_encoded
+
+
+# Splitting data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.40,
+    random_state=42
+)
+
+# Print result of split
+print(f"Total Records: {df.height}")
+print(f"Training set: {X_train.height} rows")
+print(f"Testing set: {X_test.height} rows")
+
+result_any = X.filter(
+    pl.any_horizontal(pl.selectors.float().is_null())
+)
+
+result_any
+
+# Create decision tree model
+dtree = DecisionTreeClassifier(
+  max_depth=5, 
+  min_samples_leaf=10,
+  random_state=42
+)
+
+# Fits data to model
+dtree.fit(X_train, y_train)
+
+# Predicts values
+y_pred_tree = dtree.predict(X_test)
+
+# Calculates and prints accuracy
+decisionTree_acc = metrics.accuracy_score(y_test, y_pred_tree)
+print(f"Decision Tree Accuracy: {decisionTree_acc:.2%}")
+
+# Create Random Forest model
+rforest = RandomForestClassifier(
+    n_estimators=500,
+    random_state=42
+)
+
+# Fit data
+rforest.fit(X_train, y_train)
+
+# Predict
+y_pred_forest = rforest.predict(X_test)
+
+randomForest_acc = metrics.accuracy_score(y_test, y_pred_forest)
+print(f"Random Forest Accuracy: {randomForest_acc:.2%}")
+
+# Create logistic pipeline
+logistic_model = make_pipeline(
+    SimpleImputer(strategy="median"),
+    StandardScaler(),
+    LogisticRegression(
+        max_iter=5000,
+        random_state=42
+    )
+)
+
+logistic_model.fit(X_train, y_train)
+
+y_pred_logistic = logistic_model.predict(X_test)
+
+logistic_acc = metrics.accuracy_score(y_test, y_pred_logistic)
+print(f"Logistic Regression Accuracy: {logistic_acc:.2%}")
+
+```
+
+
+## QUESTION 2
+
+1. For each model (your original one, and the 2 new ones for this task), display the classification report and the permutation importances for the most important features.  Discuss which model you would recommend to the Client and why.
+
+In this case, I would recommend the Random forest, as all of its scores are either equal to or higher than the other models. It has great recall and precision, and overall its F1 score is 97-98%, with an accuracy of 97%. It simply performs better overall and would be the most useful.
+
+```{python}
+print("Decision Tree")
+print(metrics.classification_report(y_test, y_pred_tree, zero_division=0))
+
+print("Random Forest")
+print(metrics.classification_report(y_test, y_pred_forest, zero_division=0))
+
+print("Logistic Regression")
+print(metrics.classification_report(y_test, y_pred_logistic, zero_division=0))
+
+```
+
+
+```{python}
+# Creating a function to caluclate permutation importance
+def permutation_importance_table(model, model_name):
+    result = permutation_importance(
+        model, X_test, y_test,
+        scoring="f1_weighted",
+        n_repeats=10,
+        random_state=42
+    )
+
+    return pl.DataFrame({
+        "model": model_name,
+        "feature": X_test.columns,
+        "importance": result.importances_mean,
+        "std": result.importances_std
+    }).sort("importance", descending=True)
+
+tree_permutation = permutation_importance_table(dtree, "Decision Tree")
+forest_permutation = permutation_importance_table(rforest, "Random Forest")
+logistic_permutation = permutation_importance_table(logistic_model, "Logistic Regression")
+```
+
+
+```{python}
+# Creating and displaying plots based on the top 10 most important features for each model.
+
+dtree_plot = (
+    ggplot(
+    tree_permutation.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+    ) 
+    +geom_bar(stat="identity") 
+    +labs(
+        title="Decision Tree Permutation Importance",
+        x="Mean decrease in weighted F1",
+        y="Feature"
+    )
+)
+
+rforest_plot = (
+    ggplot(
+    forest_permutation.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Random Forest Permutation Importance",
+        x="Mean decrease in weighted F1",
+        y="Feature"
+    )
+)
+
+logistic_plot = (
+    ggplot(
+    logistic_permutation.head(10).sort("importance"),
+    aes(x="importance", y="feature")
+) + \
+    geom_bar(stat="identity") + \
+    labs(
+        title="Logistic Regression Permutation Importance",
+        x="Mean decrease in weighted F1",
+        y="Feature"
+    )
+)
+
+dtree_plot
+```
+
+
+```{python}
+rforest_plot
+```
+
+
+```{python}
+logistic_plot
+```
