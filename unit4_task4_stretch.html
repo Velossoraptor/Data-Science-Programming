@@ -2260,7 +2260,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
   <li><a href="#question-2" id="toc-question-2">Question 2</a></li>
   </ul>
 </nav>
-<div id="5fa670ca" class="cell" data-execution_count="1">
+<div id="6d6b71af" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -2288,7 +2288,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
 <h1>Question 1</h1>
 <p><em>Join the dwellings_neighborhoods_ml.csv data to the dwelling_ml.csv on the parcel column to create a new dataset. Duplicate the code for the model you recommended in the previous task above and update it to use this data. Explain the differences and if this changes the model you recomend to the Client.</em></p>
 <p>This model is slightly less accurate than the one trained on the previous data- However, this doesn’t change my recommendation, as it has only changed by about a percent. The model is still pretty accurate, coming in at 96.5%, compared to the accuracy of the other models.</p>
-<div id="26faf783" class="cell" data-execution_count="2">
+<div id="77ce589d" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>url_1 <span class="op">=</span> <span class="st">&quot;https://github.com/byuidatascience/data4dwellings/raw/master/data-raw/dwellings_ml/dwellings_ml.csv&quot;</span></span>
@@ -2348,8 +2348,8 @@ Random Forest Accuracy: 96.58%</code></pre>
 <p><em>Can you build a model that predicts the year a house was built? Note this is a regression ML model, not a classifier. Report appropriate evaluation metrics for the model. Explain the model and the evaluation metrics you used to determine if the model is good.</em></p>
 <p>I built a RandomForestRegressor that predicted the year that a house was built. RFR’s work similar to RFC’s, by creating several decision trees and consuolidting the treults, but instead of a boolean A/B value decsion, it predicts a continuous number, eg the year a house is built. I used the MAE and RMSE (Mean Average Error and Root Mean Squared Error) to determine if the model was good. Of course values closer to 0 are better, so when I got 13.31 for RMSE and 6.68 for MAE I figured it was ok, but I had no reference point to judge whether 6-13 years was a good margin of error.</p>
 <p>So with the help of AI, which suggested this strategy, I found the Standard deviation of the target column, Year Built, which ended up being 37.13 years. With that knowledge, my RMSE is less than half of that, and the MSE is less than a third, which I believe is pretty good. It’s definitely not great, and I wouldn’t love to trust this model, so I wanted to look at what kinds of misses it was making.</p>
-<p>So I printed out my top 5 misses based on how far off they were, and found that most of them were by about 100 years. Some of them were houses built in the 1890’s which were predicted to be built in the late 90’s or early 2000’s. I can assume that these houses were likely remodeled fairly recently, resulting in a newer remodeling date, high quality overall, as well as throwing some of the other metrics that would indicate an older house out the window.</p>
-<div id="eb359d87" class="cell" data-execution_count="3">
+<p>So I printed out my top 5 misses based on how far off they were, and found that most of them were by about 100 years. Some of them were houses built in the 1890’s which were predicted to be built in the late 90’s or early 2000’s. I can assume that these houses were likely remodeled fairly recently, resulting in a newer remodeling date, high quality overall, as well as throwing some of the other metrics that would indicate an older house out the window. So overall I think this is a very good model!</p>
+<div id="6af181d5" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>reg_y <span class="op">=</span> df_join.select(<span class="st">&quot;yrbuilt&quot;</span>).to_series()</span>
@@ -2381,7 +2381,7 @@ Random Forest Accuracy: 96.58%</code></pre>
 RandomForestRegressor MAE: 6.68</code></pre>
 </div>
 </div>
-<div id="6ccc0eda" class="cell" data-execution_count="4">
+<div id="abf104d4" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate Standard Deviation</span></span>

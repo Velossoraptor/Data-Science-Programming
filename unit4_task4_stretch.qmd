@@ -108,7 +108,7 @@ I built a RandomForestRegressor that predicted the year that a house was built. 
 
 So with the help of AI, which suggested this strategy, I found the Standard deviation of the target column, Year Built, which ended up being 37.13 years. With that knowledge, my RMSE is less than half of that, and the MSE is less than a third, which I believe is pretty good. It's definitely not great, and I wouldn't love to trust this model, so I wanted to look at what kinds of misses it was making.
 
-So I printed out my top 5 misses based on how far off they were, and found that most of them were by about 100 years. Some of them were houses built in the 1890's which were predicted to be built in the late 90's or early 2000's. I can assume that these houses were likely remodeled fairly recently, resulting in a newer remodeling date, high quality overall, as well as throwing some of the other metrics that would indicate an older house out the window. 
+So I printed out my top 5 misses based on how far off they were, and found that most of them were by about 100 years. Some of them were houses built in the 1890's which were predicted to be built in the late 90's or early 2000's. I can assume that these houses were likely remodeled fairly recently, resulting in a newer remodeling date, high quality overall, as well as throwing some of the other metrics that would indicate an older house out the window. So overall I think this is a very good model!
 
 ```{python}
 reg_y = df_join.select("yrbuilt").to_series()
