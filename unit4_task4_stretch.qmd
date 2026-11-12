@@ -1,0 +1,154 @@
+---
+title: "Regression ML"
+subtitle: "Unit 4 Task 4 Stretch"
+author: "Talia Olsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+
+```{python}
+import polars as pl
+import polars.selectors as cs
+import numpy as np
+from lets_plot import *
+import requests
+import io
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.datasets import fetch_openml
+
+from sklearn.ensemble._forest import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.inspection import permutation_importance
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+# Question 1
+
+*Join the dwellings_neighborhoods_ml.csv data to the dwelling_ml.csv on the parcel column to create a new dataset. Duplicate the code for the model you recommended in the previous task above and update it to use this data. Explain the differences and if this changes the model you recomend to the Client.*
+
+This model is slightly less accurate than the one trained on the previous data- However, this doesn't change my recommendation, as it has only changed by about a percent. The model is still pretty accurate, coming in at 96.5%, compared to the accuracy of the other models. 
+
+```{python}
+url_1 = "https://github.com/byuidatascience/data4dwellings/raw/master/data-raw/dwellings_ml/dwellings_ml.csv"
+
+url_2 = "https://github.com/byuidatascience/data4dwellings/raw/master/data-raw/dwellings_neighborhoods_ml/dwellings_neighborhoods_ml.csv"
+
+response1 = requests.get(url_1)
+response2 = requests.get(url_2)
+
+df_dwell = pl.read_csv(io.BytesIO(response1.content))
+
+df_neighborhood = pl.read_csv(io.BytesIO(response2.content))
+
+df_join = df_dwell.join(df_neighborhood, on="parcel")
+
+y = df_join.select("before1980").to_series()
+
+X = df_join.drop("yrbuilt", "before1980", "parcel")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.40,
+    random_state=42,
+    stratify=y
+)
+
+# Printing results of split
+print(f"Total Records: {df_join.height}")
+print(f"Training set: {X_train.height} rows")
+print(f"Testing set: {X_test.height} rows")
+
+# Create Random Forest model
+rforest = RandomForestClassifier(
+    n_estimators=500,
+    random_state=42
+)
+
+# Fit data
+rforest.fit(X_train, y_train)
+
+# Predict
+y_pred_forest = rforest.predict(X_test)
+
+randomForest_acc = metrics.accuracy_score(y_test, y_pred_forest)
+print(f"Random Forest Accuracy: {randomForest_acc:.2%}")
+```
+
+# Question 2
+
+*Can you build a model that predicts the year a house was built? Note this is a regression ML model, not a classifier. Report appropriate evaluation metrics for the model. Explain the model and the evaluation metrics you used to determine if the model is good.*
+
+I built a RandomForestRegressor that predicted the year that a house was built. RFR's work similar to RFC's, by creating several decision trees and consuolidting the treults, but instead of a boolean A/B value decsion, it predicts a continuous number, eg the year a house is built. I used the MAE and RMSE (Mean Average Error and Root Mean Squared Error) to determine if the model was good. Of course values closer to 0 are better, so when I got 13.31 for RMSE and 6.68 for MAE I figured it was ok, but I had no reference point to judge whether 6-13 years was a good margin of error.
+
+So with the help of AI, which suggested this strategy, I found the Standard deviation of the target column, Year Built, which ended up being 37.13 years. With that knowledge, my RMSE is less than half of that, and the MSE is less than a third, which I believe is pretty good. It's definitely not great, and I wouldn't love to trust this model, so I wanted to look at what kinds of misses it was making.
+
+So I printed out my top 5 misses based on how far off they were, and found that most of them were by about 100 years. Some of them were houses built in the 1890's which were predicted to be built in the late 90's or early 2000's. I can assume that these houses were likely remodeled fairly recently, resulting in a newer remodeling date, high quality overall, as well as throwing some of the other metrics that would indicate an older house out the window. 
+
+```{python}
+reg_y = df_join.select("yrbuilt").to_series()
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, reg_y,
+    test_size=0.40,
+    random_state=42,
+    stratify=y
+)
+
+
+forestReg = RandomForestRegressor(
+  n_estimators = 500,
+  random_state = 42
+)
+
+forestReg.fit(X_train, y_train)
+
+y_pred_freg = forestReg.predict(X_test)
+
+rmse = np.sqrt(metrics.mean_squared_error(y_test, y_pred_freg))
+mae = metrics.mean_absolute_error(y_test, y_pred_freg)
+print(f"RandomForestRegressor RMSE: {rmse:.2f}")
+print(f"RandomForestRegressor MAE: {mae:.2f}")
+```
+
+
+```{python}
+# Calculate Standard Deviation
+y_std = y_test.std()
+print(f"Target Standard Deviation: {y_std:.2f} years")
+
+# Combine test data with predicted data and compare by finding number of years off
+results = X_test.with_columns([
+    pl.Series("Actual_YearBuilt", y_test),
+    pl.Series("Predicted_YearBuilt", y_pred_freg.round(1))
+]).with_columns(
+    (pl.col("Actual_YearBuilt") - pl.col("Predicted_YearBuilt")).abs().alias("Error_Years")
+).select("Actual_YearBuilt", "Predicted_YearBuilt", "Error_Years").sort("Error_Years", descending=True)
+
+results.head()
+```
